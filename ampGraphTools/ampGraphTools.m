@@ -41,7 +41,7 @@ $AmpGTVersion=0.41;
 StylePrint["Welcome to ampGraphTools, version "<>ToString[$AmpGTVersion]<>", 
 a work in progress, but fairly simple implementation of
 ideas in http://arxiv.org/abs/arXiv:1506.00974 and refs 
-therein - dr.jjmc@gmail.com."]
+therein. - dr.jjmc@gmail.com."]
 
  (* Needs["Combinatorica`"] *)
 
@@ -900,6 +900,7 @@ hLsq[a__,myMomenta_]:=hLsq[a,myMomenta]=Lsq[Plus@@(myMomenta/@a)];)
 evaluateLpRule[myMomenta_]:={ulp[a_,b_]:> hLP[a,b,myMomenta]}
 evaluateLsqRule[myMomenta_]:={uLsq[a___]:>hLsq[Flatten[{a/.Plus:>List}],myMomenta]}
 evaluateSRule[myMomenta_]:={s[a___]:>hLsq[Flatten[{a}/.Plus:>List],myMomenta]}
+applyMomentum[mom_][expr_]:=expr/.evaluateLpRule[mom]/.evaluateLsqRule[mom]/.complexSpinorProd[mom]
 refreshHLP
 
 getRandomNullVector[prec_,D_] := Module[{v=Table[ Random[Real, {-1, 1}, prec],{i,1,D-1}]}, Prepend[ -1^(RandomInteger[{0,1}])*v,Sqrt[v.v]]]
