@@ -5,7 +5,7 @@
 (* Created by the Wolfram Workbench Jul 15, 2016 *)
 
 BeginPackage["ampGraphTools`"]
-$AmpGTVersion = 0.43;
+$AmpGTVersion = 0.45;
 
 
 (* Exported symbols added here with SymbolName::usage *) 
@@ -917,7 +917,7 @@ clarifyTrees[expr_,myTree_] :=
     ]
 
 fancySameTest[treeA_,treeB_] :=
-    isIsomorphic[zeReals[treeA],zeReals[treeB]]
+    isIsomorphic[toGraph[treeA],toGraph[treeB]]
 
 
 getIndepRules[treeList_] :=
@@ -1987,8 +1987,10 @@ getMatchingGraphsOne[graphA_, graphFunc_,
          {0}
      ])
 
-zeReals[trees_] :=
-    zeReals[trees] = vertexFormGraph[trees /. Atree[a__] :> neckl[a]]
+toGraph[trees_] :=
+    toGraph[trees] = vertexFormGraph[trees /. Atree[a__] :> neckl[a]]
+
+zeReals[trees_]:=toGraph[trees]
 
 jacobiGraphOnLeg[graph_, leg_, metaHolder_, excludeGraphFunc_] :=
     Module[ {trees = consistentGraphToTrees[graph], a, b, rest, neg, pos, 
@@ -2854,7 +2856,7 @@ treesToLoopsUOWithContactsSlow[cut_] :=
         Join[stripPriveledge /@ 
            Union[ Timing[
               grz = priveledgeLegs /@ (Table[
-                    Map[zeReals[mergeLegsTreeLevelList[curGraph, #]] &, 
+                    Map[toGraph[mergeLegsTreeLevelList[curGraph, #]] &, 
                      Select[Subsets[
                        curGraph /. in[a_] :> Sow[in[a]] // Reap // Last // 
                    Flatten // Union], Length[#] > 0 &]], {curGraph, 
@@ -2922,7 +2924,7 @@ doContactCollapse[cubicCut_] :=
         Join[stripPriveledge /@ 
            Union[ Timing[
               grz = priveledgeLegs /@ (Table[
-                    Map[zeReals[mergeLegsTreeLevelList[curGraph, #]] &, 
+                    Map[toGraph[mergeLegsTreeLevelList[curGraph, #]] &, 
                      Select[Subsets[
                        curGraph /. in[a_] :> Sow[in[a]] // Reap // Last // 
                    Flatten // Union], Length[#] > 0 &]], {curGraph, 
@@ -3007,13 +3009,13 @@ priveledgeSomeLegs[graph_,legs_] :=
         newLs = Table[Table[Atree[{red[num, 0, i], -red[num, 0, i + 1]}], {i, 1,numLz[num]}] /. 
            red[num, 0, numLz[num] + 1] -> l[num], {num, allLs /. l[a_] :> a}];
         StylePrint[allLs];
-        zeReals[Flatten[Join[newLs, 
+        toGraph[Flatten[Join[newLs, 
            tree /. Thread[-allLs -> (allLs /. l[a_] :> -red[a, 0, 1])] ]]]
     ]
 
 
 minStripPriveledge[graph_] :=
-    zeReals[Flatten[consistentGraphToTrees[graph] /. Atree[{red[a___],-red[b___]}] :> {} /. 
+    toGraph[Flatten[consistentGraphToTrees[graph] /. Atree[{red[a___],-red[b___]}] :> {} /. 
     red[a_, 0, b_] :> red[a, 0, 1]]]
 
 
@@ -3023,11 +3025,11 @@ minStripPriveledge[graph_] :=
 (*         DateString[]}]];*)
 (*   ret = Map[*)
 (*     (n++;*)
-(*          If[Head[graphHashCode[zeReals[#]]] === Graph,*)
+(*          If[Head[graphHashCode[toGraph[#]]] === Graph,*)
 (*              #,*)
 (*              If[Mod[n, 100], Print[Style[{"Got through another hundred", n}]];];*)
 (*              StylePrint["Corrupt " <> ToString[n] <> "??"];*)
-(*           consistentGraphToTrees[corruptGraph[zeReals[#]]]]) &,*)
+(*           consistentGraphToTrees[corruptGraph[toGraph[#]]]]) &,*)
 (*        cutList];*)
 (*      Print[Style[{"Worked out a corrupt list.", *)
 (*         DateString[]}]];*)
@@ -3041,7 +3043,7 @@ corruptCutList[cutList_] :=
     StylePrint,ret},
                                   Print[Style[{"Working out a corrupt list.", 
                                   DateString[]}]];
-                                  ret = consistentGraphToTrees/@(corruptGraph[zeReals[#]]&/@
+                                  ret = consistentGraphToTrees/@(corruptGraph[toGraph[#]]&/@
                                      cutList);
                                   Print[Style[{"Worked out a corrupt list.", 
                                   DateString[]}]];
@@ -3114,7 +3116,7 @@ corruptGraph[graph_] :=
 
 
 getHardCutId[graph_,cutList_] :=
-    Module[ {expr = Select[Range[Length[cutList]],isIsomorphic[zeReals[corruptCutList[cutList][[#]]],corruptGraph[graph]]&,1]},
+    Module[ {expr = Select[Range[Length[cutList]],isIsomorphic[toGraph[corruptCutList[cutList][[#]]],corruptGraph[graph]]&,1]},
         If[ expr==={},
             Throw[badCutThrowObject[{"cutlist Incomplete!!",graph//stripPriveledge//consistentGraphToTrees,
                      graph}]],
@@ -3174,9 +3176,9 @@ buildADressingContainer[graphs_,graphDressings_] :=
                                 numZ = gNumZ;
                             ];
                             myyListOfNonZero[ "graphPattern"/.configRule] = numZ;
-                            myGraphs = corruptGraph[zeReals[myCuts[[#]]]]&/@numZ;
+                            myGraphs = corruptGraph[toGraph[myCuts[[#]]]]&/@numZ;
                             StylePrint[{"Maybe got some graphs!", myGraphs//First,DateString[],"graphPattern"/.configRule}];
-                            (newContainer["dressingPath"][corruptGraph[zeReals[myCuts[[#]]]]] = contactDir<>ToString[#]<>(
+                            (newContainer["dressingPath"][corruptGraph[toGraph[myCuts[[#]]]]] = contactDir<>ToString[#]<>(
                             "dressPattern"/.configRule))&/@numZ;
                             StylePrint[{"Maybe got some load paths!", newContainer["dressingPath"][myGraphs//First],DateString[]}];
                         ]
@@ -3201,7 +3203,7 @@ buildADressingContainer[graphs_,graphDressings_] :=
                            !isIsomorphic[
                            priveledgeLegs[stripPriveledge[myGraph]],
                               priveledgeLegs[stripPriveledge[ 
-                                  zeReals[contList[[ newContainer["labelGenerator"][myGraph] ]]
+                                  toGraph[contList[[ newContainer["labelGenerator"][myGraph] ]]
                                          ]
                                        ]
                               ]
@@ -3390,7 +3392,7 @@ buildADressingContainer[graphs_,graphDressings_] :=
                         !isIsomorphic[
                               priveledgeLegs[stripPriveledge[myGraph]],
                                  priveledgeLegs[stripPriveledge[ 
-                                     zeReals[contList[[ myContainer["labelGenerator"][myGraph] ]]
+                                     toGraph[contList[[ myContainer["labelGenerator"][myGraph] ]]
                                             ]
                                           ]
                                  ]],
@@ -3398,7 +3400,7 @@ buildADressingContainer[graphs_,graphDressings_] :=
                             StylePrint[ stripPriveledge[myGraph]//InputForm];
                             StylePrint[ 
                                          stripPriveledge[
-                                              zeReals[
+                                              toGraph[
                                                  contList[[ (myContainer["labelGenerator"][myGraph]) ]]
                                               ]
                                          ]
@@ -3485,7 +3487,7 @@ buildADressingContainer[graphs_,graphDressings_] :=
                         !isIsomorphic[
                               priveledgeLegs[stripPriveledge[myGraph]],
                                  priveledgeLegs[stripPriveledge[ 
-                                     zeReals[contList[[ myContainer["labelGenerator"][myGraph] ]]
+                                     toGraph[contList[[ myContainer["labelGenerator"][myGraph] ]]
                                             ]
                                           ]
                                  ]],
@@ -3493,7 +3495,7 @@ buildADressingContainer[graphs_,graphDressings_] :=
                             StylePrint[ stripPriveledge[myGraph]//InputForm];
                             StylePrint[ 
                                          stripPriveledge[
-                                              zeReals[
+                                              toGraph[
                                                  contList[[ (myContainer["labelGenerator"][myGraph]) ]]
                                               ]
                                          ]
