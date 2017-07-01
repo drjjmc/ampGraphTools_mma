@@ -1741,6 +1741,73 @@ SUSY = 4;
 
 (* Jacobi Code *)
 
+tHat[graph_, leg_] :=
+    Module[ {trees = consistentGraphToTrees[graph], a, b, rest, neg, pos, 
+      counter, as, at, au, k1, k2, k3, k4, ls, myEqnFs, myNormCrap, zat, 
+      i, allDaFudges, myTree, rules, fancyRules, Print, allFunction, 
+      StylePrint},
+        allFunction[num_] :=
+            metaHolder["graphSet"][[num]];
+        Clear[fancyRules, SS, TT, UU, nGraphs, theNUMS, myTree, rules];
+        StylePrint[{"graph,leg", graph, leg}];
+        {a, b} = 
+        Select[trees, Count[#1, leg, \[Infinity]] > 0 &];
+        rest = Complement[trees, {a, b}];
+        {pos, neg} = 
+        If[ Count[a, -leg, \[Infinity]] > 0,
+            {b, a},
+            {a, b}
+        ];
+        counter = 0;
+        While[pos[[1]][[-1]] =!= leg, pos = Atree[rotateList[pos[[1]], 2]]];
+        counter = 0;
+        While[neg[[1]][[1]] =!= -leg, 
+         neg = Atree[rotateList[neg[[1]], 2]]];
+        {k1, k2, a} = 
+        pos[[1]];
+        {a, k3, k4} = neg[[1]];
+        myTree = Join[rest, {Atree[{k1, k2, k3, k4}]}];
+        StylePrint[myTree];
+        rules = mapToAbsGenericTrees[myTree];
+        StylePrint[{"rules", "InputForm"[rules]}];
+        Join[rest, {Atree[{k1, k4, at}], Atree[{-at, k3, k2}]}] /. 
+         at :> leg // zeReals
+    ]
+
+uHat[graph_, leg_] :=
+    Module[ {trees = consistentGraphToTrees[graph], a, b, rest, neg, pos, 
+      counter, as, at, au, k1, k2, k3, k4, ls, myEqnFs, myNormCrap, zat, 
+      i, allDaFudges, myTree, rules, fancyRules, Print, allFunction, 
+      StylePrint},
+        allFunction[num_] :=
+            metaHolder["graphSet"][[num]];
+        Clear[fancyRules, SS, TT, UU, nGraphs, theNUMS, myTree, rules];
+        StylePrint[{"graph,leg", graph, leg}];
+        {a, b} = 
+        Select[trees, Count[#1, leg, \[Infinity]] > 0 &];
+        rest = Complement[trees, {a, b}];
+        {pos, neg} = 
+        If[ Count[a, -leg, \[Infinity]] > 0,
+            {b, a},
+            {a, b}
+        ];
+        counter = 0;
+        While[pos[[1]][[-1]] =!= leg, pos = Atree[rotateList[pos[[1]], 2]]];
+        counter = 0;
+        While[neg[[1]][[1]] =!= -leg, 
+         neg = Atree[rotateList[neg[[1]], 2]]];
+        {k1, k2, a} = 
+        pos[[1]];
+        {a, k3, k4} = neg[[1]];
+        myTree = Join[rest, {Atree[{k1, k2, k3, k4}]}];
+        StylePrint[myTree];
+        rules = mapToAbsGenericTrees[myTree];
+        StylePrint[{"rules", "InputForm"[rules]}];
+        Join[rest, {Atree[{k1, k3, au}], Atree[{-au, k2, k4}]}] /. 
+         au :> leg//zeReals
+    ]
+  
+
 
 getDotRules[trees_] :=
     Module[ {legs = 
