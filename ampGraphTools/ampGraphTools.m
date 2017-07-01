@@ -5,7 +5,7 @@
 (* Created by the Wolfram Workbench Jul 15, 2016 *)
 
 BeginPackage["ampGraphTools`"]
-$AmpGTVersion = 0.45;
+$AmpGTVersion = 0.46;
 
 
 (* Exported symbols added here with SymbolName::usage *) 
@@ -14,7 +14,73 @@ a work in progress, but fairly simple implementation of
 ideas in http://arxiv.org/abs/arXiv:1506.00974 and refs 
 therein. - dr.jjmc@gmail.com."]
 
- (* Needs["Combinatorica`"] *)
+
+(* Formatting *)
+
+FFON = False;
+fancyFormatOn :=
+    (FFON = True;
+     Format[numerator[a_, b_]] :=
+         n @@ (Join[
+             b /. -Total[Subscript[k, #] & /@ Range[LEGS - 1]] :> 
+               Subscript[k, LEGS],
+             Complement[Subscript[k, #] & /@ Range[LEGS], 
+              b /. -Total[Subscript[k, #] & /@ Range[LEGS - 1]] :> 
+                Subscript[k, LEGS]]] /. Subscript[k, aa_] :> aa);
+     Format[perm[a__]] :=
+         DisplayForm[RowBox[{"(", a /. k[b_] :> b, ")"} // Flatten]];
+     Format[ulp[a_, b_]] :=
+         DisplayForm[RowBox[{"(", a, "\[CenterDot]", b, ")"}]];
+     Format[\[Epsilon][k[a_]]] :=
+         DisplayForm[RowBox[{SubscriptBox["\[CurlyEpsilon]", a]}]];
+     Format[aa[i_, j_]] :=
+         Subscript[\[ScriptA], j];
+     Format[\[Tau][a_, b_]] :=
+         DisplayForm[
+          RowBox[{"(", If[ Head[ a] === Plus,
+                           {"(", a, ")"},
+                           a
+                       ], 
+             "\[CenterDot]", 
+             If[ Head[ b] === Plus,
+                 {"(", b, ")"},
+                 b
+             ], ")"} // Flatten]];
+     Format[\[Tau][\[Epsilon][k[a_]], \[Epsilon][k[b_]]]] :=
+         DisplayForm[
+          RowBox[{SubscriptBox["\[CurlyEpsilon]", 
+              RowBox[{a, "\[CenterDot]", b}]]} // Flatten]];
+     SetAttributes[\[Tau], Orderless];
+     Format[\[Tau][a_, b_]] :=
+         DisplayForm[
+          RowBox[{"(", If[ Head[ a] === Plus,
+                           {"(", a, ")"},
+                           a
+                       ], 
+             "\[CenterDot]", 
+             If[ Head[ b] === Plus,
+                 {"(", b, ")"},
+                 b
+             ], ")"} // Flatten]];
+     Format[uLsq[a__]] :=
+         DisplayForm[SuperscriptBox[RowBox[{"(", Plus @@ a, ")"}], "2"]])
+fancyFormatOff :=
+    (FFON = False;
+     Format[numerator[a_, b_]] =.;
+     Format[perm[a__]] =.;
+     Format[ulp[a_, b_]] =.;
+     Format[\[Epsilon][k[a_]]] =.;
+     Format[aa[i_, j_]] =.;
+     Format[\[Tau][a_, b_]] = .;
+     Format[\[Tau][\[Epsilon][k[a_]], \[Epsilon][k[b_]]]] = .;
+     Format[\[Tau][a_, b_]] = .;
+     Format[uLsq[a__]] =.;)
+fancyFormatQ :=
+    FFON
+
+
+
+(* Actual stuff *)
 
 Clear[Lorentz,Lsq];
 
@@ -1990,7 +2056,8 @@ getMatchingGraphsOne[graphA_, graphFunc_,
 toGraph[trees_] :=
     toGraph[trees] = vertexFormGraph[trees /. Atree[a__] :> neckl[a]]
 
-zeReals[trees_]:=toGraph[trees]
+zeReals[trees_] :=
+    toGraph[trees]
 
 jacobiGraphOnLeg[graph_, leg_, metaHolder_, excludeGraphFunc_] :=
     Module[ {trees = consistentGraphToTrees[graph], a, b, rest, neg, pos, 
@@ -3597,4 +3664,5 @@ Begin["`Private`"]
 End[]
 
 EndPackage[]
+
 
