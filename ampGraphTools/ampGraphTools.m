@@ -17,68 +17,53 @@ therein. - dr.jjmc@gmail.com."]
 
 (* Formatting *)
 
-FFON = False;
-fancyFormatOn :=
-    (FFON = True;
-     Format[numerator[a_, b_]] :=
-         n @@ (Join[
-             b /. -Total[Subscript[k, #] & /@ Range[LEGS - 1]] :> 
-               Subscript[k, LEGS],
-             Complement[Subscript[k, #] & /@ Range[LEGS], 
-              b /. -Total[Subscript[k, #] & /@ Range[LEGS - 1]] :> 
-                Subscript[k, LEGS]]] /. Subscript[k, aa_] :> aa);
-     Format[perm[a__]] :=
-         DisplayForm[RowBox[{"(", a /. k[b_] :> b, ")"} // Flatten]];
-     Format[ulp[a_, b_]] :=
-         DisplayForm[RowBox[{"(", a, "\[CenterDot]", b, ")"}]];
-     Format[\[Epsilon][k[a_]]] :=
-         DisplayForm[RowBox[{SubscriptBox["\[CurlyEpsilon]", a]}]];
-     Format[aa[i_, j_]] :=
-         Subscript[\[ScriptA], j];
-     Format[\[Tau][a_, b_]] :=
-         DisplayForm[
-          RowBox[{"(", If[ Head[ a] === Plus,
-                           {"(", a, ")"},
-                           a
-                       ], 
-             "\[CenterDot]", 
-             If[ Head[ b] === Plus,
-                 {"(", b, ")"},
-                 b
-             ], ")"} // Flatten]];
-     Format[\[Tau][\[Epsilon][k[a_]], \[Epsilon][k[b_]]]] :=
-         DisplayForm[
-          RowBox[{SubscriptBox["\[CurlyEpsilon]", 
-              RowBox[{a, "\[CenterDot]", b}]]} // Flatten]];
-     SetAttributes[\[Tau], Orderless];
-     Format[\[Tau][a_, b_]] :=
-         DisplayForm[
-          RowBox[{"(", If[ Head[ a] === Plus,
-                           {"(", a, ")"},
-                           a
-                       ], 
-             "\[CenterDot]", 
-             If[ Head[ b] === Plus,
-                 {"(", b, ")"},
-                 b
-             ], ")"} // Flatten]];
-     Format[uLsq[a__]] :=
-         DisplayForm[SuperscriptBox[RowBox[{"(", Plus @@ a, ")"}], "2"]])
-fancyFormatOff :=
-    (FFON = False;
-     Format[numerator[a_, b_]] =.;
-     Format[perm[a__]] =.;
-     Format[ulp[a_, b_]] =.;
-     Format[\[Epsilon][k[a_]]] =.;
-     Format[aa[i_, j_]] =.;
-     Format[\[Tau][a_, b_]] = .;
-     Format[\[Tau][\[Epsilon][k[a_]], \[Epsilon][k[b_]]]] = .;
-     Format[\[Tau][a_, b_]] = .;
-     Format[uLsq[a__]] =.;)
-fancyFormatQ :=
-    FFON
+
+fancyFormatOn := (FFON = True;
+  Format[numerator[a_, b_]] := 
+   n @@ (Join[
+       b /. -Total[Subscript[k, #] & /@ Range[LEGS - 1]] :> 
+         Subscript[k, LEGS], 
+       Complement[Subscript[k, #] & /@ Range[LEGS], 
+        b /. -Total[Subscript[k, #] & /@ Range[LEGS - 1]] :> 
+          Subscript[k, LEGS]]] /. Subscript[k, aa_] :> aa);
+  Format[perm[a__]] := 
+   DisplayForm[RowBox[{"(", a /. k[b_] :> b, ")"} // Flatten]];
+  Format[ulp[a_, b_]] := 
+   DisplayForm[RowBox[{"(", a, "\[CenterDot]", b, ")"}]];
+  Format[\[Epsilon][k[a_]]] := 
+   DisplayForm[RowBox[{SubscriptBox["\[CurlyEpsilon]", a]}]];
+  Format[aa[i_, j_]] := Subscript[\[ScriptA], j];
+  Format[\[Tau][\[Epsilon][k[a_]], \[Epsilon][k[b_]]]] := 
+   DisplayForm[
+    RowBox[{SubscriptBox["\[CurlyEpsilon]", 
+        RowBox[{a, "\[CenterDot]", b}]]} // Flatten]];
+  SetAttributes[\[Tau], Orderless];
+  Format[\[Tau][a_, b_]] := 
+   DisplayForm[
+    RowBox[{"(", If[Head[a] === Plus, {"(", a, ")"}, a], 
+       "\[CenterDot]", If[Head[b] === Plus, {"(", b, ")"}, b], ")"} //
+       Flatten]];
+  Format[uLsq[a__]] := 
+   DisplayForm[SuperscriptBox[RowBox[{"(", Plus @@ a, ")"}], "2"]];
+  Format[k[a_]] := Subscript[k, a];
+  Format[l[a_]] := Subscript[l, a];
+  )
+fancyFormatOn;
 
 
+fancyFormatOff := (FFON = False;
+  Format[numerator[a_, b_]] =.;
+  Format[perm[a__]] =.;
+  Format[ulp[a_, b_]] =.;
+  Format[\[Epsilon][k[a_]]] =.;
+  Format[aa[i_, j_]] =.;
+  Format[\[Tau][a_, b_]] = .;
+  Format[\[Tau][\[Epsilon][k[a_]], \[Epsilon][k[b_]]]] =.;
+  Format[uLsq[a__]] =.;
+  Format[k[a_]] =.;
+  Format[l[a_]] =.;)
+fancyFormatOff;
+fancyFormatQ := FFON
 
 (* Actual stuff *)
 
@@ -708,18 +693,12 @@ stupidSameTest[a_,b_] :=
     stupidSameTest[a,b] = isIsomorphic[stupidRep[a],stupidRep[b]]
 
 plotBlob[graph_] :=
-    (plotCutGraph[graph,BaseStyle->{PointSize[.06],Thickness[Large]},ImageSize->Medium]/.{
-    Tooltip[Point[a_],neckl[{-leg[k,1]}]]:>{},
-    Tooltip[Point[a_],neckl[{-leg[k,2]}]]:>{},
-    Tooltip[Point[a_],neckl[{-leg[k,3]}]]:>{},
-    Tooltip[Point[a_],neckl[{-leg[k,4]}]]:>{}})
+    (plotCutGraph[graph,BaseStyle->{PointSize[.06],Thickness[Large]},ImageSize->Medium]/.
+    Tooltip[Point[a_],neckl[{-k[#]}]]:>{}/@Range[20])
 
 plotSmallBlob[graph_] :=
-    (plotCutGraph[graph,BaseStyle->{PointSize[.06],Thickness[Large]},ImageSize->Small]/.{
-    Tooltip[Point[a_],neckl[{-leg[k,1]}]]:>{},
-    Tooltip[Point[a_],neckl[{-leg[k,2]}]]:>{},
-    Tooltip[Point[a_],neckl[{-leg[k,3]}]]:>{},
-    Tooltip[Point[a_],neckl[{-leg[k,4]}]]:>{}})
+    (plotCutGraph[graph,BaseStyle->{PointSize[.06],Thickness[Large]},ImageSize->Small]/.
+    Tooltip[Point[a_],neckl[{-k[#]}]]:>{}/@Range[20])
 
 resetMathematicaGraph :=
     (Clear[mathematicaGraph,mmaGraphRule];
