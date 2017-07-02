@@ -5,7 +5,7 @@
 (* Created by the Wolfram Workbench Jul 15, 2016 *)
 
 BeginPackage["ampGraphTools`"]
-$AmpGTVersion = 0.46;
+$AmpGTVersion = 0.47;
 
 
 (* Exported symbols added here with SymbolName::usage *) 
