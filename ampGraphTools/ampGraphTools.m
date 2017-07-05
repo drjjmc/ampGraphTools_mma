@@ -5,7 +5,7 @@
 (* Created by the Wolfram Workbench Jul 15, 2016 *)
 
 BeginPackage["ampGraphTools`"]
-$AmpGTVersion = 0.47;
+$AmpGTVersion = 0.48;
 
 
 (* Exported symbols added here with SymbolName::usage *) 
@@ -1197,7 +1197,7 @@ buildMomenta[mtrees__,D_] :=
         StylePrint[trees];
         myLegs = (#1[[1]] & ) /@ Rest[trees];
         firstCut = First[trees][[1]];
-        mom = generateNullMomenta[firstCut, 850,D];
+        mom = generateNullMomenta[firstCut, PREC,D];
         known = Join[firstCut, -firstCut];
         notknown = Complement[Union[Flatten[myLegs] /. -(a_) :> a], known];
         ((myTree = #1;
@@ -1277,7 +1277,7 @@ buildMomenta[mtrees__] :=
         StylePrint[trees];
         myLegs = (#1[[1]] & ) /@ Rest[trees];
         firstCut = First[trees][[1]];
-        mom = generateNullMomenta[firstCut, 850];
+        mom = generateNullMomenta[firstCut, PREC];
         known = Join[firstCut, -firstCut];
         notknown = Complement[Union[Flatten[myLegs] /. -(a_) :> a], known];
         ((myTree = #1;
@@ -1786,38 +1786,27 @@ SUSY = 4;
 
 (* Jacobi Code *)
 
-tHat[graph_, leg_] :=
-    Module[ {trees = consistentGraphToTrees[graph], a, b, rest, neg, pos, 
-      counter, as, at, au, k1, k2, k3, k4, ls, myEqnFs, myNormCrap, zat, 
-      i, allDaFudges, myTree, rules, fancyRules, Print, allFunction, 
-      StylePrint},
-        allFunction[num_] :=
-            metaHolder["graphSet"][[num]];
-        Clear[fancyRules, SS, TT, UU, nGraphs, theNUMS, myTree, rules];
-        StylePrint[{"graph,leg", graph, leg}];
-        {a, b} = 
-        Select[trees, Count[#1, leg, \[Infinity]] > 0 &];
-        rest = Complement[trees, {a, b}];
-        {pos, neg} = 
-        If[ Count[a, -leg, \[Infinity]] > 0,
-            {b, a},
-            {a, b}
-        ];
-        counter = 0;
-        While[pos[[1]][[-1]] =!= leg, pos = Atree[rotateList[pos[[1]], 2]]];
-        counter = 0;
-        While[neg[[1]][[1]] =!= -leg, 
-         neg = Atree[rotateList[neg[[1]], 2]]];
-        {k1, k2, a} = 
-        pos[[1]];
-        {a, k3, k4} = neg[[1]];
-        myTree = Join[rest, {Atree[{k1, k2, k3, k4}]}];
-        StylePrint[myTree];
-        rules = mapToAbsGenericTrees[myTree];
-        StylePrint[{"rules", "InputForm"[rules]}];
-        Join[rest, {Atree[{k1, k4, at}], Atree[{-at, k3, k2}]}] /. 
-         at :> leg // zeReals
-    ]
+tHat[graph_, leg_] := 
+ Module[{trees = consistentGraphToTrees[graph], a, b, rest, neg, 
+        pos, counter, as, at, au, k1, k2, k3, k4, ls, myEqnFs, 
+   myNormCrap, zat, i, StylePrint,
+        allDaFudges, myTree, rules, fancyRules, Print, allFunction}, 
+      StylePrint[{"graph,leg", graph, leg}]; 
+       {a, b} = Select[trees, Count[#1, leg, Infinity] > 0 & ]; 
+       rest = Complement[trees, {a, b}]; {pos, neg} = 
+   If[Count[a, -leg, Infinity] > 0, 
+           {b, a}, {a, b}]; counter = 0; While[pos[[1]][[-1]] =!= leg, 
+         pos = Atree[rotateList[pos[[1]], 2]]]; counter = 0; 
+  While[neg[[1]][[1]] =!= -leg, 
+         neg = Atree[rotateList[neg[[1]], 2]]]; {k1, k2, a} = 
+   pos[[1]]; 
+       {a, k3, k4} = neg[[1]]; 
+  myTree = Join[rest, {Atree[{k1, k2, k3, k4}]}]; 
+       StylePrint[myTree]; rules = mapToAbsGenericTrees[myTree]; 
+       StylePrint[{"rules", "InputForm"[rules]}]; 
+       zeReals[
+   Join[rest, {Atree[{k4, k1, at}], Atree[{-at, k2, k3}]}] /. 
+    at :> leg]]
 
 uHat[graph_, leg_] :=
     Module[ {trees = consistentGraphToTrees[graph], a, b, rest, neg, pos, 
@@ -1848,7 +1837,7 @@ uHat[graph_, leg_] :=
         StylePrint[myTree];
         rules = mapToAbsGenericTrees[myTree];
         StylePrint[{"rules", "InputForm"[rules]}];
-        Join[rest, {Atree[{k1, k3, au}], Atree[{-au, k2, k4}]}] /. 
+        Join[rest, {Atree[{k3, k1, au}], Atree[{-au, k4, k2}]}] /. 
          au :> leg//zeReals
     ]
   
