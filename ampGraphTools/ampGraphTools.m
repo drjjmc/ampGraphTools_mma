@@ -5,7 +5,7 @@
 (* Created by the Wolfram Workbench Jul 15, 2016 *)
 
 BeginPackage["ampGraphTools`"]
-$AmpGTVersion = 0.48;
+$AmpGTVersion = 0.49;  
 
 
 (* Exported symbols added here with SymbolName::usage *) 
@@ -1809,6 +1809,38 @@ tHat[graph_, leg_] :=
     at :> leg]]
 
 uHat[graph_, leg_] :=
+    Module[ {trees = consistentGraphToTrees[graph], a, b, rest, neg, 
+    pos, counter, as, at, au, k1, k2, k3, k4, ls, myEqnFs, myNormCrap, zat, i, 
+    allDaFudges, myTree, rules, fancyRules, Print,StylePrint },
+        Clear[fancyRules, SS, TT, UU, 
+          nGraphs, theNUMS, myTree, rules];
+        StylePrint[{"graph,leg", graph, leg}];
+        {a, b} = Select[trees, Count[#1, leg, Infinity] > 0 & ];
+        StylePrint[{"ab",a,b}];
+        rest = Complement[trees, {a, b}];
+        {pos, neg} = If[ Count[a, -leg, Infinity] > 0,
+                         {b, a},
+                         {a, b}
+                     ];
+        StylePrint[{"+-",pos,neg}];
+        counter = 0;
+        While[pos[[1]][[-1]] =!= leg, 
+        pos = Atree[rotateList[pos[[1]], 2]]];
+        counter = 0;
+        While[neg[[1]][[1]] =!= -leg, 
+        neg = Atree[rotateList[neg[[1]], 2]]];
+        StylePrint[{"+-",pos,neg}];
+        counter = 0;
+        {k1, k2, a} = pos[[1]];
+        {a, k3, k4} = neg[[1]];
+        myTree = Join[rest, {Atree[{k1, k2, k3, k4}]}];
+        StylePrint[myTree];
+        rules = mapToAbsGenericTrees[myTree];
+        StylePrint[{"rules", "InputForm"[rules]}];
+        zeReals[Join[rest, {Atree[{k1, k3, au}], Atree[{-au, k2, k4}]}] /. au :> leg]
+    ]
+
+uHatOld[graph_, leg_] :=
     Module[ {trees = consistentGraphToTrees[graph], a, b, rest, neg, pos, 
       counter, as, at, au, k1, k2, k3, k4, ls, myEqnFs, myNormCrap, zat, 
       i, allDaFudges, myTree, rules, fancyRules, Print, allFunction, 
