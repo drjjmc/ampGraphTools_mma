@@ -89,8 +89,6 @@ fancyFormatOn;
 
 
 fancyFormatOff := (FFON = False;
-  Format[k[a_]]=.;
-  Format[l[a_]]=.;
   Format[spa[a_,b_]]=.;
   Format[spb[a_,b_]]=.;
   Format[Atree[a__]]=.;
