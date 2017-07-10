@@ -5,7 +5,7 @@
 (* Created by the Wolfram Workbench Jul 15, 2016 *)
 
 BeginPackage["ampGraphTools`"]
-$AmpGTVersion = 0.49;  
+$AmpGTVersion = .50;  
 
 
 (* Exported symbols added here with SymbolName::usage *) 
@@ -19,6 +19,43 @@ therein. - dr.jjmc@gmail.com."]
 
 
 fancyFormatOn := (FFON = True;
+
+Format[k[a_]] := Subscript[\[ScriptK], a];
+
+Format[l[a_]] := Subscript[\[ScriptL], a];
+
+Format[flat[a_]] := 
+ Superscript[RawBoxes[RowBox[{"(", MakeBoxes[a], ")"}]], 
+  Style[\[Flat], {Blue, Bold}]];
+
+Format[spb[a_, b_]] := 
+  RawBoxes[RowBox[{"[", MakeBoxes[a], ",", MakeBoxes[b], "]"}]];
+  
+Format[spa[a_, b_]] := 
+  RawBoxes[RowBox[{"\[LeftAngleBracket]", MakeBoxes[a], ",", MakeBoxes[b], 
+        "\[RightAngleBracket]"}]];
+
+Format[AtreeF[a__]] := 
+ DisplayForm[
+  RowBox[{SuperscriptBox[SubscriptBox["\[ScriptCapitalA]", Length[a]], 
+     "tree"], "(", Sequence @@ Riffle[a, ","], ")"}]];
+
+Format[Atree[a__]] := 
+ DisplayForm[
+  RowBox[{SuperscriptBox[SubscriptBox["A", Length[a]], "tree"], "(", 
+    Sequence @@ Riffle[a, ","], ")"}]];
+
+Format[AtreeF[a__, h__]] := 
+ DisplayForm[
+  RowBox[{SuperscriptBox[SubscriptBox["\[ScriptCapitalA]", Length[a]], 
+     "tree"], "(", Sequence @@ Riffle[Thread[SuperscriptBox[a, h]], ","], 
+    ")"}]];
+
+Format[Atree[a__, h__]] := 
+ DisplayForm[
+  RowBox[{SuperscriptBox[SubscriptBox["A", Length[a]], "tree"], "(", 
+    Sequence @@ Riffle[Thread[SuperscriptBox[a, h]], ","], ")"}]];
+
   Format[numerator[a_, b_]] := 
    n @@ (Join[
        b /. -Total[Subscript[k, #] & /@ Range[LEGS - 1]] :> 
@@ -52,6 +89,12 @@ fancyFormatOn;
 
 
 fancyFormatOff := (FFON = False;
+  Format[k[a_]]=.;
+  Format[l[a_]]=.;
+  Format[spa[a_,b_]]=.;
+  Format[spb[a_,b_]]=.;
+  Format[Atree[a__]]=.;
+  Format[AtreeF[a__]]=.;
   Format[numerator[a_, b_]] =.;
   Format[perm[a__]] =.;
   Format[ulp[a_, b_]] =.;
@@ -66,6 +109,7 @@ fancyFormatOff;
 fancyFormatQ := FFON
 
 (* Actual stuff *)
+
 
 Clear[Lorentz,Lsq];
 
@@ -3654,6 +3698,243 @@ stripVacuumRules[graph_] :=
                                        Sow[neckl[{a, b}]]]]]]; ];
         cacheRules
     ]
+
+
+collectionAdd[collection_, item_, canonForm_] :=
+ 
+ Module[{pos, newCol, maxItem},
+  maxItem = collection["maxItem"] /. collection[___] :> 0;
+  collection[canonForm[item]] = 
+   collection[canonForm[item]] /. collection[___] :> (++maxItem);
+  collection[  collection[canonForm[item]]] = 
+   collection[  collection[canonForm[item]]] /. ( collection[___] :> item);
+  collection["maxItem"] = maxItem;
+  collection["allItems"];
+  collection[canonForm[item]]
+  ]
+
+opTillClosure[initial_, op_] := 
+ Module[{collection, oldMaxId, myCurrentID, uHatList},
+  Clear[collection];
+  myCurrentID = collectionAdd[collection, initial, graphHashCode];
+  uHatList = {};
+  uHatList = FixedPoint[  (oldMaxId = collection["maxItem"];
+      uHatList = Flatten[{#,
+           
+           Table[StylePrint[{leg, 
+              myRow = (myCurrentID <-> 
+                 collectionAdd[collection, 
+                  op[collection[myCurrentID] // stripPriveledge, leg] // 
+                   priveledgeLegs, graphHashCode])}];
+            
+            myRow, {leg, 
+             getIntLegs[collection[myCurrentID] // stripPriveledge]}]}] /. 
+         UndirectedEdge[a_, b_] :> UndirectedEdge @@ Sort[{a, b}] // Union;
+      If[oldMaxId < collection["maxItem"] || myCurrentID < oldMaxId,
+       myCurrentID++];
+      uHatList) &, uHatList];
+  {uHatList, collection}]
+
+opTillClosureOnCollection[collection_, {op1_, op2_}] := 
+ Module[{oldMaxId, myCurrentID, uHatList},
+  myCurrentID = 1;
+  uHatList = {};
+  uHatList = FixedPoint[  (oldMaxId = collection["maxItem"];
+      uHatList = Flatten[{#,
+           
+           Table[DYNSTAT = {leg, 
+              myRow = (myCurrentID <-> 
+                 collectionAdd[collection, 
+                  op1[collection[myCurrentID] // stripPriveledge, leg] // 
+                   priveledgeLegs, graphHashCode])};
+            {myRow,
+             
+             myCurrentID <-> 
+              collectionAdd[collection, 
+               op2[collection[myCurrentID] // stripPriveledge, leg] // 
+                priveledgeLegs, graphHashCode]}, {leg, 
+             getIntLegs[collection[myCurrentID] // stripPriveledge]}]}] /. 
+         UndirectedEdge[a_, b_] :> UndirectedEdge @@ Sort[{a, b}] // Union;
+      If[oldMaxId < collection["maxItem"] || myCurrentID < oldMaxId,
+       myCurrentID++];
+      uHatList) &, uHatList];
+  {uHatList, collection}]
+
+getVertices[vertexFormGraph[necklaceList__]] := necklaceList
+
+flattenMomenta[myMom4_, \[Xi]_] := (myMom4[-flat[a_]] := -myMom4[flat[a]]; 
+  myMom4[flat[a_]] := If[Head[a] === Plus,
+    (myMom4 /@ 
+       a) - \[Xi] Lorentz[(myMom4 /@ a), (myMom4 /@ 
+          a)]/(2 Lorentz[(myMom4 /@ a), \[Xi]]),
+    (myMom4[
+       a]) - \[Xi] Lorentz[(myMom4[a]), (myMom4[
+          a])]/(2 Lorentz[(myMom4[a]), \[Xi]])];)
+
+atreeRule = {Atree[lab_List, h_List] :> Module[{s = Plus @@ h, l = Length[h]}, 
+             
+     If[(Abs[s] >= l - 2 && l > 3) || Abs[s] == l, 0, If[Abs[s] == Abs[l - 4], 
+                  MHVtree[lab, h], 
+                 Print[Style[{Abs[s], l - 2, l, h}]]; Atree[lab, h]]]]}; 
+
+mhvTreeRule = {MHVtree[lab_, hel_] :> Module[{negLegs, posLegs}, 
+             
+     negLegs = 
+      Transpose[Select[Transpose[{lab, hel}], #1[[2]] < 0 & ]][[1]]; 
+              
+     posLegs = 
+      Transpose[Select[Transpose[{lab, hel}], #1[[2]] > 0 & ]][[1]]; 
+              If[Length[negLegs] == 2, (I*spa[negLegs[[1]], negLegs[[2]]]^4)/
+                  (Times @@ 
+          Table[spa[lab[[i]], lab[[i + 1]]], {i, 1, Length[lab] - 1}]*
+         spa[Last[lab], lab[[1]]]), 
+                -(I*spb[posLegs[[2]], posLegs[[1]]]^4)/(Times @@ 
+          Table[spb[lab[[i + 1]], lab[[i]]], 
+                      {i, 1, Length[lab] - 1}]*spb[Last[lab], lab[[1]]]), 
+      Null]]}; 
+
+mhvTreeRules = Join[atreeRule, mhvTreeRule]; 
+
+showCollection[list_] := Manipulate[
+  Show[list[[Round[x]]], ImageSize -> Large, 
+   PlotLabel -> Style[Round[x], {Large, Bold}]], {x, 1, Length[list]}]
+
+cutSumFormat[cut__] := 
+ TraditionalForm[
+  Style[DisplayForm[
+    RowBox[{UnderscriptBox["\[Sum]", RowBox[{"s", " \[Element] ", "States"}]],
+        Sequence @@ cut} /. Module[{myRule = Map[# -> SuperscriptBox[#, "s"] &,
+          First /@ 
+           Select[ Flatten[cut /. -a_ :> a /. Atree :> List] // 
+             Tally, #[[2]] === 2 &]], StylePrint}, StylePrint[myRule]; 
+       myRule]]], Large]]
+
+
+doColorOrderedPlot[expr_, myExtLegs_, options___] := Module[{},
+  doMomentaPlot[expr, 
+   VertexCoordinateRules -> 
+    MapIndexed[
+     neckl[-{#}] -> 
+       N[{-Cos[(#2[[1]] - 3/2) 2 \[Pi]/Length[myExtLegs]], 
+         Sin[(#2[[1]] - 3/2) 2 \[Pi]/Length[myExtLegs]]}] &, myExtLegs],
+   MultiedgeStyle -> 50, 
+   EdgeRenderingFunction -> (Flatten[{If[
+         Head[#3 /. -a_ :> a] === l, {Dashed, Red, Arrowheads[{{.05, .75}}], 
+          Thick, Arrow[#1], 
+          Text[#3, Mean[#1], Background -> Opacity[.6, White]]},
+         If[
+          Head[#3 /. -a_ :> a] === 
+           highlight, {RGBColor[0.074189364461738, 0.5290608072022583, 
+            0.0075379568169680325], Thick, Arrow[#1], 
+           Text[#3 /. highlight[a_] :> a, Mean[#1], 
+            Background -> Opacity[.6, White]]}, {Blue, Arrowheads[1/18], 
+           Thick, Arrow[#1], 
+           Text[#3, Mean[#1], Background -> Opacity[.6, White]]}]]}] &), 
+   options]]
+
+doColorOrderedPlotRand[expr_, myExtLegs_, options___] := 
+  Module[{firstRules = 
+     MapIndexed[
+      neckl[-{#}] -> 
+        N[{-Cos[(#2[[1]] - 3/2) 2 \[Pi]/Length[myExtLegs]], 
+          Sin[(#2[[1]] - 3/2) 2 \[Pi]/Length[myExtLegs]]}] &, myExtLegs], 
+    fisk},
+   fisk = graphPlotForm[expr] /. firstRules /. neckl[a___] :> Sow[neckl[a]] //
+         Reap // Last // Flatten // Union;
+   firstRules = 
+    Join[firstRules, 
+     MapIndexed[#1 -> 
+        N[3/4 Mean[# /. neckl[a__] :> (neckl[{-#}] & /@ a) /. firstRules /. 
+            neckl[___] :> RandomReal[{-2, -2}/3, 2]]
+         ] &, fisk]];
+   doMomentaPlot[expr, VertexCoordinateRules -> firstRules,
+    MultiedgeStyle -> 50, 
+    EdgeRenderingFunction -> (Flatten[{If[
+          Head[#3 /. -a_ :> a] === l, {Dashed, Red, Arrowheads[{{.05, .75}}], 
+           Thick, Arrow[#1], 
+           Text[#3, Mean[#1], Background -> Opacity[.6, White]]},
+          If[
+           Head[#3 /. -a_ :> a] === 
+            highlight, {RGBColor[0.074189364461738, 0.5290608072022583, 
+             0.0075379568169680325], Thick, Arrow[#1], 
+            
+            Text[#3 /. highlight[a_] :> a, Mean[#1], 
+             Background -> Opacity[.6, White]]}, {Blue, Arrowheads[1/18], 
+            Thick, Arrow[#1], 
+            Text[#3, Mean[#1], Background -> Opacity[.6, White]]}]]}] &), 
+    options]];
+
+doColorOrderedPlot[expr_] := 
+ Module[{myExtLegs = 
+    mergeLegsTreeLevelList[consistentGraphToTrees[expr], 
+       expr /. in[a_] :> Sow[in[a]] // Reap // Last // Flatten // Union] // 
+      First // First},
+  myExtLegs = 
+   rotateList[myExtLegs, 
+    Position[myExtLegs, First[Sort[myExtLegs]]] // Flatten // First]; 
+  doColorOrderedPlot[expr, myExtLegs]]
+
+cutDisplayRule[expr_] := 
+ expr /. in[a_] :> "" /. 
+  Graphics[a___] :> 
+   Graphics @@ (List[a] /. {-l[b_] :> Style[-l[b], {Blue, Bold, Large}] , 
+       l[b_] :> Style[l[b], {Blue, Bold, Large}],
+       k[b_] :> Style[b, {Purple, Bold, Large}]})
+
+allGraphsFromFirstCut = treesToLoops[firstCut];
+cutDisplayRule[expr_] := 
+ expr /. in[a_] :> "" /. 
+  Graphics[a___] :> 
+   Graphics @@ (List[a] /. {l[b_] :> Style[l[b], {Blue, Bold, Large}],
+       k[b_] :> Style[b, {Purple, Bold, Large}]})
+
+
+
+cutGraph3D[graph_] := 
+ Graph3D[HighlightGraph[
+   mathematicaGraph[
+    graph], (First /@ 
+      Select[graphPlotForm[graph], (#[[-1]] // Head) === l &]) /. 
+    Rule :> UndirectedEdge]]
+ 
+stagePlot[sGraph_, order_] := 
+ Manipulate[Module[{myLegs, StylePrint, dasRed, myTrees},
+   myTrees = consistentGraphToTrees[sGraph][[ 1 ;; Round[x] ]];
+   StylePrint[x];
+   myLegs = myTrees /. Atree :> List /. -a_ :> a // Flatten // Union;
+   StylePrint[myLegs];
+          (dasRed[#] = True) & /@ myLegs;
+   StylePrint[{#, dasRed[#]}] & /@ myLegs;
+   Show[GraphicsRow[{doColorOrderedPlot[sGraph, k /@ Range[4], 
+       EdgeRenderingFunction -> (({If[True === dasRed[#3], {Red, Arrow[#]}, 
+             Arrow[#]], 
+            Inset[#3, Mean[#1], Automatic, Automatic, #[[1]] - #[[2]], 
+             Background -> White]}) &), PlotLabel -> x], 
+      MatrixForm[myTrees /. Atree :> neckl]}]]], 
+  {{x, 1}, 1, 
+          Length[sGraph[[1]]], 1}] 
+
+canonVertexList[
+  vertexFormGraph[
+   graph_]] := (# /. 
+     neckl[a__] :> 
+      neckl[rotateList[a, 
+        Position[a, Sort[a] // First] // Flatten // First]]) & /@ graph
+
+getOffShellDotsBetter[graph_] := 
+    Module[{trees = consistentGraphToTrees[graph], ext, 
+        int = getIntLegs[graph], legs}, 
+      ext = getExtLegsFromTrees[trees]; 
+       legs = Join[int, ext]; ToRules[
+         (Reduce[daRInp = Flatten[#1], daList = 
+                  Sort[Union[Flatten[Outer[ulp[#1, #2] & , 
+                           Join[ext[[{-1}]], int], Join[ext, int]]]], 
+                     OrderedQ[(Abs[#1] /. {k[a_] :> a, l[b_] :> 
+                                    2^b, ulp[a_, b_] :> a*b} & ) /@ 
+                           {#1, #2}] & ] // Reverse, Backsubstitution -> 
+                  True] & )[Join[(ulp[#1, #1] == 0 & ) /@ ext, 
+             Append[trees, Atree[ext]] /. Atree[a__] :> 
+                 (ulp[#1, Plus @@ a] == 0 & ) /@ legs]]]]
 
 
 Begin["`Private`"]
