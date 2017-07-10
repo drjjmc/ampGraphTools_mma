@@ -3879,7 +3879,7 @@ cutDisplayRule[expr_] :=
        l[b_] :> Style[l[b], {Blue, Bold, Large}],
        k[b_] :> Style[b, {Purple, Bold, Large}]})
 
-allGraphsFromFirstCut = treesToLoops[firstCut];
+
 cutDisplayRule[expr_] := 
  expr /. in[a_] :> "" /. 
   Graphics[a___] :> 
