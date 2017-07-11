@@ -5,7 +5,7 @@
 (* Created by the Wolfram Workbench Jul 15, 2016 *)
 
 BeginPackage["ampGraphTools`"]
-$AmpGTVersion = .50;  
+$AmpGTVersion = .51;  
 
 
 (* Exported symbols added here with SymbolName::usage *) 
@@ -3808,7 +3808,7 @@ cutSumFormat[cut__] :=
        myRule]]], Large]]
 
 
-doColorOrderedPlot[expr_, myExtLegs_, options___] := Module[{},
+doOrderedPlot[expr_, myExtLegs_, options___] := Module[{},
   doMomentaPlot[expr, 
    VertexCoordinateRules -> 
     MapIndexed[
@@ -3830,7 +3830,7 @@ doColorOrderedPlot[expr_, myExtLegs_, options___] := Module[{},
            Text[#3, Mean[#1], Background -> Opacity[.6, White]]}]]}] &), 
    options]]
 
-doColorOrderedPlotRand[expr_, myExtLegs_, options___] := 
+doOrderedPlotRand[expr_, myExtLegs_, options___] := 
   Module[{firstRules = 
      MapIndexed[
       neckl[-{#}] -> 
@@ -3862,7 +3862,7 @@ doColorOrderedPlotRand[expr_, myExtLegs_, options___] :=
             Text[#3, Mean[#1], Background -> Opacity[.6, White]]}]]}] &), 
     options]];
 
-doColorOrderedPlot[expr_] := 
+doOrderedPlot[expr_] := 
  Module[{myExtLegs = 
     mergeLegsTreeLevelList[consistentGraphToTrees[expr], 
        expr /. in[a_] :> Sow[in[a]] // Reap // Last // Flatten // Union] // 
@@ -3870,7 +3870,7 @@ doColorOrderedPlot[expr_] :=
   myExtLegs = 
    rotateList[myExtLegs, 
     Position[myExtLegs, First[Sort[myExtLegs]]] // Flatten // First]; 
-  doColorOrderedPlot[expr, myExtLegs]]
+  doOrderedPlot[expr, myExtLegs]]
 
 cutDisplayRule[expr_] := 
  expr /. in[a_] :> "" /. 
@@ -3903,7 +3903,7 @@ stagePlot[sGraph_, order_] :=
    StylePrint[myLegs];
           (dasRed[#] = True) & /@ myLegs;
    StylePrint[{#, dasRed[#]}] & /@ myLegs;
-   Show[GraphicsRow[{doColorOrderedPlot[sGraph, k /@ Range[4], 
+   Show[GraphicsRow[{doOrderedPlot[sGraph, k /@ Range[4], 
        EdgeRenderingFunction -> (({If[True === dasRed[#3], {Red, Arrow[#]}, 
              Arrow[#]], 
             Inset[#3, Mean[#1], Automatic, Automatic, #[[1]] - #[[2]], 
