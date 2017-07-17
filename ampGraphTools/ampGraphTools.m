@@ -5,7 +5,7 @@
 (* Created by the Wolfram Workbench Jul 15, 2016 *)
 
 BeginPackage["ampGraphTools`"]
-$AmpGTVersion = .51;  
+$AmpGTVersion = .52;  
 
 
 (* Exported symbols added here with SymbolName::usage *) 
@@ -2258,46 +2258,64 @@ reformatEqnRule[eqn_, num_] :=
           l[b_] :> ToExpression[StringJoin[ToString /@ {l, b}]]]
     ]
 
+
 reformatEqn[eqn_, num_] :=
-    Module[ {colors = 
-       Reap[(List @@ eqn) /. color[a_][b_] :> Sow[color[a][b]]][[2]] // 
-      Flatten // Union,
-      rules, aa, bb, cc, dd, ee, ff, gg, hh, eqns, col, StylePrint, 
-      Subscript},
-        Subscript[a_, b_] :=
-            a[b];
-        StylePrint[colors];
-        StylePrint[num];
-        colors = 
-         Select[colors, # /. c_ color[a_][b_] :> color[a][b] /. 
-            color[{a_}][b_] :> a === num &, 1];
-        StylePrint[colors];
-        If[ Length[colors] > 1,
-            Print[Style[{"Wacky greater colors in reformatEQN", eqn, num}]]
-        ];
-        col = colors[[1]];
-        StylePrint[eqns = col[[1]] == {aa, bb, cc, dd, ee, ff, gg, hh}];
-        rules = (Rule @@ #) & /@ 
-          List @@ Reduce[
-            Thread[col[[1]] == {aa, bb, cc, dd, ee, ff, gg, hh}],
-            {Subscript[k, 1], Subscript[k, 2], Subscript[k, 3], 
-             Subscript[l, a], Subscript[l, b], Subscript[l, c], 
-             Subscript[l, d], Subscript[l, e]}];
-        StylePrint[{"rules", rules}];
-        StylePrint[{eqn, eqn /. rules}];
-        StylePrint[{"Reformat Goods",
-          theReformatGoods = 
-           Reduce[eqn /. rules /. 
-             Thread[Rule[{aa, bb, cc, dd, ee, ff, gg, hh},
-               {Subscript[k, 1], Subscript[k, 2], Subscript[k, 3], 
-                Subscript[l, a], Subscript[l, b], Subscript[l, c], 
-                Subscript[l, d], Subscript[l, e]}]], 
-            col /. rules /. Thread[Rule[{aa, bb, cc, dd, ee, ff, gg, hh},
-               {Subscript[k, 1], Subscript[k, 2], Subscript[k, 3], 
-                Subscript[l, a], Subscript[l, b], Subscript[l, c], 
-                Subscript[l, d], Subscript[l, e]}]]]}];
-        theReformatGoods
-    ]
+     Module[ {colors = 
+           
+    Reap[(List @@ eqn) /. color[a_][b_] :> Sow[color[a][b]]][[2]] // 
+            Flatten // Union,
+         rules, aa, eqns, col, 
+         Subscript},
+          Subscript[a_, b_] := a[b];
+          StylePrint[colors];
+          StylePrint[num];
+          colors = 
+            Select[colors, # /. c_ color[a_][b_] :> color[a][b] /. 
+                  color[{a_}][b_] :> a === num &, 1];
+          StylePrint[{"Got the guy", colors}];
+          If[ Length[colors] > 1,
+               
+   Print[Style[{"Wacky greater colors in reformatEQN", eqn, num}]]
+           ];
+          col = colors[[1]];
+          StylePrint[{"Now a col[[1]]", col[[1]]}];
+          
+  StylePrint[
+   eqns = Thread[col[[1]] == (aa /@ Range[Length[col[[1]]]]) ]];
+          rules = (Rule @@ #) & /@ 
+              List @@ Reduce[
+                  Thread[col[[1]] == (aa /@ Range[Length[col[[1]]]]) ],
+                  Flatten[{Map[k[#] &, Range[LEGS - 1]], { 
+                      Subscript[l, a], Subscript[l, b], 
+                      Subscript[l, c], Subscript[l, d], 
+                      Subscript[l, e]
+                      }
+                     }]];
+          StylePrint[{"rules", rules}];
+          StylePrint[{eqn, eqn /. rules}];
+          StylePrint[{"Reformat Goods",
+              theReformatGoods = 
+                Reduce[eqn /. rules /. 
+                    
+       Thread[Rule[(aa /@ Range[Length[col[[1]]]]), 
+         Flatten[{Map[k[#] &, Range[LEGS - 1]], { 
+                          Subscript[l, a], Subscript[l, b], 
+                          Subscript[l, c], Subscript[l, d], 
+                          Subscript[l, e]
+                          }
+                         }][[Range[Length[col[[1]]]]]]]], 
+                  col /. rules /. 
+                    
+       Thread[Rule[(aa /@ Range[Length[col[[1]]]]), 
+         Flatten[{Map[k[#] &, Range[LEGS - 1]], { 
+                          Subscript[l, a], Subscript[l, b], 
+                          Subscript[l, c], Subscript[l, d], 
+                          Subscript[l, e]
+                          }
+                         }][[Range[Length[col[[1]]]]]]]]]}];
+          theReformatGoods
+      ]
+
 
 Clear[SPECIALNUM];
 iterate[{oldRules_, oldEqns_}] :=
