@@ -5,7 +5,7 @@
 (* Created by the Wolfram Workbench Jul 15, 2016 *)
 
 BeginPackage["ampGraphTools`"]
-$AmpGTVersion = .52;  
+$AmpGTVersion = .53;  
 
 
 (* Exported symbols added here with SymbolName::usage *) 
@@ -1647,10 +1647,25 @@ getKRules2[trees_,guys_] :=
     Flatten[{Reduce[trees /. Atree[a__] :> 0 == Plus @@ a,guys ] /. 
     And :> List}]
 
+processCut[{cut__,ruleSets__},SUSY_] :=
+    Module[ {
+    flatGuys = Select[cut/.Atree[a__]:>a/.-a_:>a//Flatten//Union,Head[#]===in&],num,kRules,
+    denom = Times@@(cut/.Atree[a__]:>{Times@@Thread[foo[a,rotateList[a,2]]]/.foo[i_,j_]:>spa[i,j]})},
+        kRules = getKRules2[cut,flatGuys];
+        num = (Sum[cutSig[cut /. Atree[a__]:>Atree[a,a/.rule]]*Times@@ cut/.Atree[a__]:>spa@@Select[a,(#/.rule)===-1&],{rule,ruleSets}]^SUSY)*
+        If[ SUSY<4,
+            (
+            Sum[(cutSig[cut /. Atree[a__]:>Atree[a,a/.rule]]*Times@@ cut/.Atree[a__]:>spa@@Select[a,(#/.rule)===-1&])^(4-SUSY),{rule,ruleSets}]),
+            1
+        ];
+        (num/denom/.in[a_]:>flat[in[a]/.kRules])*1/(Times@@(uLsq[Flatten[{#/.kRules}/.Plus:>List]]&/@flatGuys))
+    ]
+
 processCut[{cut__,ruleSets__}] :=
     Module[ {
     flatGuys = Select[cut/.Atree[a__]:>a/.-a_:>a//Flatten//Union,Head[#]===in&],num,kRules,
     denom = Times@@(cut/.Atree[a__]:>{Times@@Thread[foo[a,rotateList[a,2]]]/.foo[i_,j_]:>spa[i,j]})},
+    StylePrint[{"Using default globabl SUSY", SUSY}];
         kRules = getKRules2[cut,flatGuys];
         num = (Sum[cutSig[cut /. Atree[a__]:>Atree[a,a/.rule]]*Times@@ cut/.Atree[a__]:>spa@@Select[a,(#/.rule)===-1&],{rule,ruleSets}]^SUSY)*
         If[ SUSY<4,
@@ -1749,10 +1764,11 @@ getTheCutOld[cut_] :=
         ]
     ]
 
-Do[daFunction[all[[i]]] = i,{i,1,Length[all]}];
+(* Do[daFunction[all[[i]]] = i,{i,1,Length[all]}];
 
 getGraphsUsedCode :=
     SparseArray[#->1&/@((daFunction/@(recBeast/@RHSPARENTS//Flatten))/.daFunction[a_]:>{}//Flatten//Union),Length[all]]//Normal//FromDigits[#,2]&
+*)
 
 Clear[findAllMhV];
 findAllMhV[tree_] :=
@@ -1823,7 +1839,6 @@ getTheCutCompare[cut_,cutGraphSoln_] :=
         ]
     ]
 
-SUSY = 4;
 
 
 (* Jacobi Code *)
@@ -2017,7 +2032,9 @@ mapToAbsGenericTrees[trees_] :=
            Rule[getIndepLegs[trees], indepLegLabels[trees]]])]
     ]
 
-DEFAULTLABELSET :=
+
+
+DEFAULTLABELSET[LEGS_,LOOPS_] :=
     Module[ {Subscript},
         Subscript[a_, b_] :=
             a[b];
@@ -2027,6 +2044,8 @@ DEFAULTLABELSET :=
           Atree[Join[-Subscript[l, #] & /@ Range[LOOPS + 1], 
             Subscript[k, #] & /@ Range[3, LEGS]]]}]
     ]
+
+
 
 internalOneLoopTadpoleQ[g_] :=
     Module[ {gpf = 
@@ -2241,25 +2260,46 @@ noCrappyGuysInJacEqn[jacEqn_] :=
         Intersection[guys, definitelyGood] === guys
     ]
 
-reformatEqnRule[eqn_, num_] :=
+reformatEqnRule[eqn_, num_,LEGS_,LOOPS_] :=
     Module[ {},
         RuleDelayed[
            ToExpression[
             StringReplace[ ToString[#[[1]]], 
-             Table[ToString[leg] -> StringJoin[ToString[leg], "_"], {leg, 
-               DEFAULTLABELSET /. {k[b_] :> 
+             Table[ToString[leg] -> 
+             	    StringJoin[ToString[leg], "_"],
+                   {leg, DEFAULTLABELSET[LEGS,LOOPS] /. {k[b_] :> 
                   ToExpression[StringJoin[ToString /@ {k, b}]]
                  , 
                  l[b_] :> 
                   ToExpression[StringJoin[ToString /@ {l, b}]]}}]]],
            Evaluate[#[[2]]]] &[
-         reformatEqn[eqn, num] /. 
+         reformatEqn[eqn, num,LEGS,LOOPS] /. 
            k[b_] :> ToExpression[StringJoin[ToString /@ {k, b}]] /. 
           l[b_] :> ToExpression[StringJoin[ToString /@ {l, b}]]]
     ]
 
 
-reformatEqn[eqn_, num_] :=
+reformatEqnRule[eqn_, num_] :=
+    Module[ {},
+    	StylePrint[{"USING DEFAULT: LEGS/LOOPS",LEGS,LOOPS}];
+        RuleDelayed[
+           ToExpression[
+            StringReplace[ ToString[#[[1]]], 
+             Table[ToString[leg] -> 
+             	    StringJoin[ToString[leg], "_"],
+                   {leg, DEFAULTLABELSET[LEGS,LOOPS] /. {k[b_] :> 
+                  ToExpression[StringJoin[ToString /@ {k, b}]]
+                 , 
+                 l[b_] :> 
+                  ToExpression[StringJoin[ToString /@ {l, b}]]}}]]],
+           Evaluate[#[[2]]]] &[
+         reformatEqn[eqn, num, LEGS,LOOPS] /. 
+           k[b_] :> ToExpression[StringJoin[ToString /@ {k, b}]] /. 
+          l[b_] :> ToExpression[StringJoin[ToString /@ {l, b}]]]
+    ]
+
+
+reformatEqn[eqn_, num_,LEGS_,LOOPS_] :=
      Module[ {colors = 
            
     Reap[(List @@ eqn) /. color[a_][b_] :> Sow[color[a][b]]][[2]] // 
