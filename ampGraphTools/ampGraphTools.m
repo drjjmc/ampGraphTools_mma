@@ -4133,6 +4133,83 @@ getOffShellDotsBetter[graph_] :=
              Append[trees, Atree[ext]] /. Atree[a__] :> 
                  (ulp[#1, Plus @@ a] == 0 & ) /@ legs]]]]
 
+polGaugeAnsatz[gr_,param_] :=
+    Module[ {Subscript},
+        Subscript[a_,b_] :=
+            a[b];
+        {legs = Length[getExtLegsFromTrees[consistentGraphToTrees[gr]]],
+        cyc = getMyCycles[gr]};
+        uniqDots = Outer[ulp[#1,#2]&,getMyUniqLegs[gr],
+          getMyUniqLegs[gr]]/.ulp[Subscript[k, a_],Subscript[k, a_]]:>{}/.
+           getIndepRules[{Atree[getExtLegsFromTrees[
+          consistentGraphToTrees[gr]]]}]/.-a_:>a/.Plus:>List//Flatten//Union;
+        uniqPol = Map[\[Epsilon][Subscript[k, #]]&,Range[legs]];
+        uniqMom = uniqDots/.Times:>List/.ulp[a_,b_]:>{a,b}//Flatten//Union;
+        StylePrint[{legs,uniqDots,uniqPol,uniqMom}];
+        justPol = Outer[ulp[#1,#2]&,uniqPol,uniqPol,1]/.ulp[\[Epsilon][a_],\[Epsilon][a_]]:>{}//Flatten;
+        polDots = Outer[ulp[#1,#2]&,uniqPol,Join[uniqMom,uniqPol],1]/.
+                 ulp[\[Epsilon][a_],\[Epsilon][a_]]:>{}/.ulp[a_,\[Epsilon][a_]]:>{}//Flatten//Union;
+        allDots = Union[Join[polDots,uniqDots]];
+        numVert = legs-2;
+        numVert+LOOPS+1
+        eFunc[expr_] :=
+            Module[ {powerCountChances = expr /. 
+            ulp[a_,b_]:>ulp[Subscript[k, 1],Subscript[k, 2]] /. 
+            Power[a_,b_]:>b /. ulp[Subscript[k, 1],Subscript[k, 2]]:>1},
+                0=!=D[expr /. Subscript[k, a_]:>k /.Subscript[l, a_]:>l/. 
+                Subscript[\[Epsilon], a_]:>\[Epsilon] /.ulp[a_,b_]:>a b,{\[Epsilon],powerCountChances}]
+            ];
+        dFunc[expr_] :=
+            And@@Table[0===D[expr /. ulp[a_,b_]:>a b,
+            {c[[1]],c[[2]]-3} ],{c,cyc}];
+        someCands[allGuys_, whatIhave_] :=
+            Module[ {},
+                {
+                 nextRound = Complement[
+                   allGuys /. \[Epsilon][Subscript[k, a_]] :> 
+                     Subscript[\[Epsilon], a], 
+                   Union[Flatten[{whatIhave} /. Times :> List /. 
+                         ulp[a_, b_] :> {a, b} /. \[Epsilon][Subscript[k, a_]] :> 
+                         Subscript[\[Epsilon], a] /. Subscript[l, a_] :> {} /. 
+                      Subscript[k, a_] :> {}
+                     ]
+                    ]
+                   ]
+                 };
+                stylePrint[{"nextRound",nextRound}];
+                stylePrint[{"allDots", allDots}];
+                stylePrint[{"whatIhave", whatIhave}];
+                nextStuff = Union[
+                      Flatten[
+                       Union[
+                           Flatten[
+                            Outer[ulp, nextRound, nextRound] /.
+                               ulp[Subscript[k, a_], Subscript[k, a_]] :> {} /.
+                              ulp[Subscript[\[Epsilon], a_], 
+                                Subscript[\[Epsilon], a_]] :> {} /. 
+                             ulp[Subscript[k, a_], Subscript[\[Epsilon], a_]] :> {}
+                            ]
+                           ] /. decentRules /. -(a_) :> a /. Plus :> List
+                       ]
+                      ];
+                stylePrint[{"nextRound", nextRound}];
+                stylePrint[{"nextStuff", nextStuff}];
+                stylePrint[{"whatIhave", whatIhave}];
+                stylePrint[{"zeDotGoods",zeDotGoods = allDots /. \[Epsilon][Subscript[k, a_]] :> Subscript[\[Epsilon], a]}];
+                stylePrint[{"Intersection", getIntersect = Intersection[zeDotGoods,nextStuff]}];
+                stylePrint[Map[{#,dFunc[#],eFunc[#]}&,getIntersect]];
+                Select[stylePrint[voop = whatIhave*getIntersect];
+                       voop, dFunc[#1] && eFunc[#1] &]
+            ];
+        "aboutToNumIt"//StylePrint;
+        num = Nest[Union[Flatten[someCands[ 
+           Join[uniqMom,uniqPol]
+           ,#]&/@#]]&,{1},numVert+LOOPS+1]/.Subscript[\[Epsilon], a_]:>\[Epsilon][Subscript[k, a]];
+        Map[a[param,#]&,Range[Length[num]]].num
+    ]
+
+
+
 
 Begin["`Private`"]
 (* Implementation of the package *)
