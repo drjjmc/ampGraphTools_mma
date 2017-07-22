@@ -5,7 +5,7 @@
 (* Created by the Wolfram Workbench Jul 15, 2016 *)
 
 BeginPackage["ampGraphTools`"]
-$AmpGTVersion = .53;  
+$AmpGTVersion = .55;  
 
 
 (* Exported symbols added here with SymbolName::usage *) 
@@ -13,6 +13,103 @@ StylePrint["Welcome to ampGraphTools, version "<>ToString[$AmpGTVersion]<>",
 a work in progress, but fairly simple implementation of
 ideas in http://arxiv.org/abs/arXiv:1506.00974 and refs 
 therein. - dr.jjmc@gmail.com."]
+
+(* Some raw graphs *)
+
+simpleBoxGraph = {Atree[{k[ 1],l[ 1],-l[ 4]}],
+Atree[{k[ 2],l[ 2],-l[ 1]}],
+Atree[{k[ 3],l[ 3],-l[ 2]}],
+Atree[{k[ 4],l[ 4],-l[ 3]}]}//toGraph;
+
+nGonGraph[nn_] :=
+    (Join[consistentGraphToTrees[simpleBoxGraph]/.-l[ 4]:>-l[ nn],
+    Table[Atree[{k[ i],l[ i],-l[ i-1]}],{i,5,nn}]]/.l[ a_]:>l[ a])/.l[ a_]:>l[ a+nn]//toGraph
+
+lRuleForGraphBuilding[mm_,ll_] :=
+    Module[ {nn = mm+2 (ll-1)},
+        Thread[Rule[
+        k[ #]&/@Flatten[Table[ {i+2, nn- Floor[ll-1/2]+i}, {i,1,ll-1}]],
+        Flatten[Table[{l[ i+(2*(ll-1)+mm)*2],-l[ i+(2*(ll-1)+mm)*2]},{i,1,ll-1}]]]]
+    ];
+
+halfLadderGraph[legs__] :=If[ Length[legs]>3,
+    toGraph[Flatten[
+    	{Atree[{legs[[1]],legs[[2]],in[1]}],
+    	Table[
+    		Atree[{-in[i],legs[[i+2]],in[i+1]}],
+         	{i,1,Length[legs]-4}],
+   	    Atree[{-in[Length[legs]-3],legs[[-2]],legs[[-1]]}
+   	    ]}]],
+    toGraph[{ Atree[legs] }]
+]
+    
+multiLoopGraph[mm_,ll_] :=
+    Module[ {tmpGraph = If[ ll>0,
+                            nGonGraph[ 2*(ll-1)+mm]/.lRuleForGraphBuilding[mm,ll],
+                            halfLadderGraph[k[ #]&/@Range[mm]]
+                        ], allKs},
+        allKs = tmpGraph/. k[ a_]:>Sow[k[ a]]//Reap//Last//Flatten//Union;
+        tmpGraph/.MapIndexed[#->k[ #2[[1]]]&,allKs]
+    ];
+
+(* expr munging *)
+
+getUniqDotsFromExpr[expr_]:=(foo/.ulp[a_,b_]:>Sow[ulp[a,b]]//Reap//Last//Flatten//Union);
+
+functionKeys = DownValues[#][[All, 1, 1, 1]] &;
+
+Say[a_]:=StylePrint[ Grid[{
+Flatten[{DateString[]," -- ", Flatten[{a}] }]}]]
+
+polRules[LEGS_]:={ulp[k[ a_],\[Epsilon][ a_]]:>0,
+    ulp[k[ 1],\[Epsilon][ LEGS]]->Total[-ulp[k[ #],\[Epsilon][ LEGS]]&/@Range[2,LEGS-1]]};
+
+
+(* graph data *)
+
+getMyCycles[gr_] :=
+    Module[ {g = System`Graph[gPF = graphPlotForm[gr]/.{a_->b_,c_}:>UndirectedEdge[a,b]],fc},
+        fc = FindFundamentalCycles[g];
+        Table[{Intersection@@(First[Complement[fc[[i]],
+        Sequence@@fc[[Range[Length[fc]]/.i:>{}//Flatten]]]]/.neckl[a__]:>a /.-a_:>a
+        )//First,Length[fc[[i]]]},{i,1,Length[fc]}]
+    ]
+
+
+(* gauge f rules *)
+feynRule[p_, q_, r_] := 
+ g structureF[{c[p /. -a_ :> a], c[q /. -a_ :> a], 
+    c[r /. -a_ :> a]}] (  
+   component[p - r , q /. -a_ :> a] g[p /. -a_ :> a, r /. -a_ :> a] +
+     component[r - q, p /. -a_ :> a] g[q /. -a_ :> a, r /. -a_ :> a] + 
+    component[q - p, r /. -a_ :> a] g[p /. -a_ :> a, q /. -a_ :> a])
+feynRule[aa_, bb_, cc_, dd_] := 
+ Block[{\[Mu] = aa, \[Nu] = bb, \[Sigma] = cc, \[Rho] = 
+    dd}, -I g^2  ( 
+    structureF[c /@ {aa, bb, e}] structureF[c /@ {cc, dd, e}]*
+      ( g[\[Mu], \[Sigma]] g[\[Nu], \[Rho]] - 
+        g[\[Mu], \[Rho]] g[\[Nu], \[Sigma]]) + 
+     structureF[c /@ {aa, cc, e}] structureF[c /@ {bb, dd, e}]*
+      ( g[\[Mu], \[Nu]] g[\[Rho], \[Sigma]] - 
+        g[\[Mu], \[Rho]] g[\[Nu], \[Sigma]]) + 
+     structureF[c /@ {aa, dd, e}] structureF[c /@ {cc, bb, e}]*
+      ( g[\[Mu], \[Sigma]] g[\[Nu], \[Rho]] - 
+        g[\[Mu], \[Nu]] g[\[Rho], \[Sigma]]))]
+
+theRulez[stuff_] := 
+ stuff /. component[a_, b_] :> component[a][b] /. 
+    g[a_, b_] :> component[\[Eta]][{a, b}] //. 
+        {   component[a_, b_] :> component[a][ b] ,
+    component[-(b_)][c_] :> -component[b][c] ,      
+    component[\[Eta]][{a_, b_}]*component[\[Eta]][{b_, c_}] :> 
+     component[\[Eta]][{a, c}], 
+     component[\[Eta]][{b_, a_}]*component[\[Eta]][{b_, c_}] :> 
+     component[\[Eta]][{a, c}] ,
+     component[\[Eta]][{a_, b_}]*component[\[Eta]][{c_, b_}] :> 
+     component[\[Eta]][{a, c}] ,   
+    component[a_][b_]*component[\[Eta]][{c_, b_}] :> component[a][c],
+     component[a_][b_]*component[c_][b_] :> ulp[a, c] } /. \[Epsilon][
+    k[ a_]] :> \[Epsilon][ a]
 
 
 (* Formatting *)
@@ -1448,6 +1545,12 @@ getExtLegsFromTrees[trees_] :=
     (#1[[1]] & ) /@ 
     Select[Tally[Flatten[trees /. Atree[a__] :> a /. 
     -(a_) :> a]], #1[[2]] === 1 & ]
+
+getExtLegs[graph_]:=(
+	getExtLegsFromTrees[
+		consistentGraphToTrees[ graph ]
+	])
+
 
 getKRules[trees_] :=
     ToRules[Reduce[trees /. Atree[a__] :> 0 == Plus @@ a, 
@@ -3050,6 +3153,44 @@ priveledgeLegs[graph_] :=
         allLs = 
          tree /. l[a_] :> Sow[l[a]] // Reap // Last // Flatten // Union;
         StylePrint[{allKs, allLs}];
+        newLs = 
+         Table[  Table[
+            Atree[{red[num, 0, i], -red[num, 0, i + 1]}], {i, 1, num}] /. 
+           red[num, 0, num + 1] -> l[num], {num, allLs /. l[a_] :> a}];
+        StylePrint[allLs];
+        newKs = 
+         Table[  Table[
+            Atree[{red[num, 1, i], -red[num, 1, i + 1]}], {i, 1, num}] /. 
+           red[num, 1, num + 1] -> -k[num], {num, allKs /. k[a_] :> a}];
+        Join[newLs, newKs, 
+           tree /. Thread[-allLs -> (allLs /. l[a_] :> -red[a, 0, 1])] /. 
+            Thread[allKs -> (allKs /. k[a_] :> -red[a, 1, 1])]] // Flatten //
+    zeReals
+    ]
+
+blowOutExt[graph_] := 
+  Module[{tree = consistentGraphToTrees[graph], ks, myNum},
+   Say["Depends oddly on LOOPS, probably replacable by \
+priveledgeExtLegs"];
+   ks = Reap[tree /. k[ a_] :> Sow[k[ a]] ][[2]] // Flatten // Union;
+   Join[tree, Flatten[Table[myNum = myK /. k[a_] :> a;
+          
+        Table[Atree[ {in[
+            Prime[LOOPS + myNum]*2^j], -in[
+             Prime[LOOPS + myNum]*2^(j + 1)]}],
+         {j, 1, myNum}], {myK, ks}]]] /. 
+     Flatten[Table[
+       myNum = myK /. 
+         k[a_] :> a; {myK -> -in[Prime[LOOPS + myNum]*2],
+        -in[Prime[LOOPS + myNum]*2^(myNum + 1)] -> myK}, {myK, ks}]] //
+     zeReals];
+    
+priveledgeExtLegs[graph_] :=
+    Module[ {allKs, allLs, newLs, newKs, 
+      tree = consistentGraphToTrees[graph], StylePrint},
+        allKs = tree /. k[a_] :> Sow[k[a]] // Reap // Last // Flatten // 
+    Union;
+        allLs = {};
         newLs = 
          Table[  Table[
             Atree[{red[num, 0, i], -red[num, 0, i + 1]}], {i, 1, num}] /. 
