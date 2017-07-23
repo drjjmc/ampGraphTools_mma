@@ -14,7 +14,11 @@ a work in progress, but fairly simple implementation of
 ideas in http://arxiv.org/abs/arXiv:1506.00974 and refs 
 therein. - dr.jjmc@gmail.com."]
 
-(* Some raw graphs *)
+
+
+(* ::Subsubsection::Closed:: *)
+(*Some raw graphs *)
+
 
 simpleBoxGraph = {Atree[{k[ 1],l[ 1],-l[ 4]}],
 Atree[{k[ 2],l[ 2],-l[ 1]}],
@@ -52,20 +56,40 @@ multiLoopGraph[mm_,ll_] :=
         tmpGraph/.MapIndexed[#->k[ #2[[1]]]&,allKs]
     ];
 
-(* expr munging *)
+
+(* ::Subsubsection::Closed:: *)
+(*Expression tools*)
+
 
 getUniqDotsFromExpr[expr_]:=(foo/.ulp[a_,b_]:>Sow[ulp[a,b]]//Reap//Last//Flatten//Union);
 
-functionKeys = DownValues[#][[All, 1, 1, 1]] &;
+
+functionKeys = DownValues[#][[All, 1, 1, 1]] &;  
+(* gives argument to a function so you can use it as a hash *)
+
 
 Say[a_]:=StylePrint[ Grid[{
 Flatten[{DateString[]," -- ", Flatten[{a}] }]}]]
+
 
 polRules[LEGS_]:={ulp[k[ a_],\[Epsilon][ a_]]:>0,
     ulp[k[ 1],\[Epsilon][ LEGS]]->Total[-ulp[k[ #],\[Epsilon][ LEGS]]&/@Range[2,LEGS-1]]};
 
 
-(* graph data *)
+scramble[list_] := (* Put list in bucket, remove list from bucket *)
+    Module[ {hat = list,bucket = {},curN = 0},
+        While[Length[hat]>0,
+        curN = Random[Integer,{1,Length[hat]}];
+        bucket = Join[bucket,hat[[{curN}]]];
+        hat = Join[hat[[Range[curN-1]]],
+        hat[[Range[curN+1,Length[hat]]]]]];
+        bucket
+    ]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Access graph meta data *)
+
 
 getMyCycles[gr_] :=
     Module[ {g = System`Graph[gPF = graphPlotForm[gr]/.{a_->b_,c_}:>UndirectedEdge[a,b]],fc},
@@ -74,9 +98,17 @@ getMyCycles[gr_] :=
         Sequence@@fc[[Range[Length[fc]]/.i:>{}//Flatten]]]]/.neckl[a__]:>a /.-a_:>a
         )//First,Length[fc[[i]]]},{i,1,Length[fc]}]
     ]
+ 
+getExtLegs[graph_]:=(
+	getExtLegsFromTrees[
+		consistentGraphToTrees[ graph ]
+	])
 
 
-(* gauge f rules *)
+(* ::Subsubsection::Closed:: *)
+(*Gauge Feynman Rules *)
+
+
 feynRule[p_, q_, r_] := 
  g structureF[{c[p /. -a_ :> a], c[q /. -a_ :> a], 
     c[r /. -a_ :> a]}] (  
@@ -112,7 +144,8 @@ theRulez[stuff_] :=
     k[ a_]] :> \[Epsilon][ a]
 
 
-(* Formatting *)
+(* ::Subsubsection::Closed:: *)
+(*Formatting*)
 
 
 fancyFormatOn := (FFON = True;
@@ -203,7 +236,9 @@ fancyFormatOff := (FFON = False;
 fancyFormatOff;
 fancyFormatQ := FFON
 
-(* Actual stuff *)
+
+(* ::Subsubsection::Closed:: *)
+(*Properties of dot products etc*)
 
 
 Clear[Lorentz,Lsq];
@@ -231,6 +266,11 @@ ulp[a_?NumberQ b_, c_] :=
 
 uLsqCleaningRule :=
     uLsq[a__]:>uLsq[Flatten[a/.Plus:>List]]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Scaffolding graph operations, dressing, etc.*)
+
 
 Clear[leftOf];
 leftOf[el_,neckl[list__]] :=
@@ -636,19 +676,6 @@ getGraphDenom[graph_] :=
 
 
 
-(* ::Text:: *)
-(*treesToLoops[treeList_] := Module[{treeGraphs = dressTreeCO /@ treeList, newForms, next},*)
-(*  newForms = First[treeGraphs];*)
-(*  treeGraphs = Rest[treeGraphs];*)
-(*  While[Length[treeGraphs] > 0,*)
-(*   next = First[treeGraphs];*)
-(*   treeGraphs = Rest[treeGraphs];*)
-(*    newForms = Flatten[Outer[sewGraphs[#1, #2] &, newForms, next]];*)
-(*   ];*)
-(*  newForms*)
-(*  ]*)
-
-
 treesToLoops[treeListUS_] :=
     Module[ {treeGraphs,negRules,bbb, newForms, next,treeList},
         negRules = MapIndexed[-#1->bbb[#2[[1]]]&, Reap[treeListUS/.-a_:>Sow[a]]//Last//Flatten//Union];
@@ -676,18 +703,6 @@ treesToLoopsUO[treeListUS_] :=
         newForms /. Reverse/@negRules
     ]
 
-
-
-(* ::Text:: *)
-(*treesToLoopsUOWithContacts[treeList_] := *)
-(*  Module[{treeGraphs = dressTreeUOWithContacts /@ treeList, newForms, *)
-(*           next}, newForms = First[treeGraphs]; *)
-(*    treeGraphs = Rest[treeGraphs]; *)
-(*         While[Length[treeGraphs] > 0, next = First[treeGraphs]; *)
-(*             treeGraphs = Rest[treeGraphs]; *)
-(*      newForms = Flatten[Outer[sewGraphs[#1, #2] & , *)
-(*                      newForms, next]]; ]; newForms]*)
-(*                *)
 
 
 dressTreeUOWithContactsCNTR[Atree[list__]] :=
@@ -1120,7 +1135,7 @@ getGoodUniqLegs[treeList_] :=
          Flatten[treeList/.Atree[a__]:>a/.-a_:>a]],{Subscript[k, 1],Subscript[k, 2],Subscript[k, 3],Subscript[k, 4]}]];
           Rule@@#&/@List@@Reduce[  treeList/.Atree[a__]:>Plus@@a==0,
           Complement[Union[Flatten[treeList/.Atree[a__]:>a/.-a_:>a]],{Subscript[k, 1],Subscript[k, 2],Subscript[k, 3]}]])
-     ]);;
+     ]);
     
     getIndepReq[treeList_,req_] :=
         ( Module[ {me,legs,loops,doo,eqns2,Subscript,
@@ -1148,6 +1163,263 @@ consistentGraphToTrees[vertexFormGraph[necklaces__]] :=
     necklaces/.neckl[a___]:>Atree[a]
 
 
+Clear[corruptGraph];
+corruptGraph[graph_] :=
+    corruptGraph[graph] = If[ Head[graphHashCode[graph]]===Graph,
+                              graph,
+                              Module[ {goodSet,cG,StylePrint},
+                                  cG = minStripPriveledge[If[ Head[graphHashCode[graph]]===Graph,
+                                                              graph,
+                                                              Module[ {intLegs = getIntLegs[graph],n = 0},
+                                                                  goodSet = {};
+                                                                  While[goodSet==={}&&n<24,
+                                                                     n++;
+                                                                     StylePrint["Trying "<>ToString[n]];
+                                                                     goodSet = Select[Subsets[intLegs,{n}],
+                                                                        Head[graphHashCode[priveledgeSomeLegs[graph,
+                                                                        Flatten[{#}]]]]===Graph&,1];
+                                                                     StylePrint[{"Got ", goodSet}];  
+                                                                   ];
+                                                                  If[ n>=24,
+                                                                      n = 0;
+                                                                      intLegs = Sort[getIntLegs[graph]];
+                                                                      goodSet = {};
+                                                                      While[goodSet==={}&&n<24,
+                                                                       n++;
+                                                                       StylePrint["Trying "<>ToString[n]];
+                                                                       goodSet = Select[Subsets[intLegs,{n}],
+                                                                          Head[graphHashCode[priveledgeSomeLegs[graph,
+                                                                          Flatten[{#}]]]]===Graph&,1];
+                                                                       StylePrint[{"Got ", goodSet}];  
+                                                                      ];
+                                                                  ];
+                                                                  If[ n>=24,
+                                                                      Throw["Some crappy corrupt graphs here.! n>24!!!"]
+                                                                  ];
+                                                                  priveledgeSomeLegs[graph,goodSet[[1]]]
+                                                              ]
+                                                          ]
+                                      ];
+                                  If[ Head[graphHashCode[cG]]=!=Graph,
+                                      Print[{"Had to box oldschool!  minStripPriveledge insufficient for crazy graph.",
+                                      stripPriveledge[graph]}];
+                                      priveledgeSomeLegs[graph,goodSet[[1]]],
+                                      cG
+                                  ]
+                              ]
+                          ]
+
+
+(* ::Subsubsection::Closed:: *)
+(*More plot code*)
+
+
+doOrderedPlot[expr_, myExtLegs_, options___] := Module[{},
+  doMomentaPlot[expr, 
+   VertexCoordinateRules -> 
+    MapIndexed[
+     neckl[-{#}] -> 
+       N[{-Cos[(#2[[1]] - 3/2) 2 \[Pi]/Length[myExtLegs]], 
+         Sin[(#2[[1]] - 3/2) 2 \[Pi]/Length[myExtLegs]]}] &, myExtLegs],
+   MultiedgeStyle -> 50, 
+   EdgeRenderingFunction -> (Flatten[{If[
+         Head[#3 /. -a_ :> a] === l, {Dashed, Red, Arrowheads[{{.05, .75}}], 
+          Thick, Arrow[#1], 
+          Text[#3, Mean[#1], Background -> Opacity[.6, White]]},
+         If[
+          Head[#3 /. -a_ :> a] === 
+           highlight, {RGBColor[0.074189364461738, 0.5290608072022583, 
+            0.0075379568169680325], Thick, Arrow[#1], 
+           Text[#3 /. highlight[a_] :> a, Mean[#1], 
+            Background -> Opacity[.6, White]]}, {Blue, Arrowheads[1/18], 
+           Thick, Arrow[#1], 
+           Text[#3, Mean[#1], Background -> Opacity[.6, White]]}]]}] &), 
+   options]]
+
+doOrderedPlotRand[expr_, myExtLegs_, options___] := 
+  Module[{firstRules = 
+     MapIndexed[
+      neckl[-{#}] -> 
+        N[{-Cos[(#2[[1]] - 3/2) 2 \[Pi]/Length[myExtLegs]], 
+          Sin[(#2[[1]] - 3/2) 2 \[Pi]/Length[myExtLegs]]}] &, myExtLegs], 
+    fisk},
+   fisk = graphPlotForm[expr] /. firstRules /. neckl[a___] :> Sow[neckl[a]] //
+         Reap // Last // Flatten // Union;
+   firstRules = 
+    Join[firstRules, 
+     MapIndexed[#1 -> 
+        N[3/4 Mean[# /. neckl[a__] :> (neckl[{-#}] & /@ a) /. firstRules /. 
+            neckl[___] :> RandomReal[{-2, -2}/3, 2]]
+         ] &, fisk]];
+   doMomentaPlot[expr, VertexCoordinateRules -> firstRules,
+    MultiedgeStyle -> 50, 
+    EdgeRenderingFunction -> (Flatten[{If[
+          Head[#3 /. -a_ :> a] === l, {Dashed, Red, Arrowheads[{{.05, .75}}], 
+           Thick, Arrow[#1], 
+           Text[#3, Mean[#1], Background -> Opacity[.6, White]]},
+          If[
+           Head[#3 /. -a_ :> a] === 
+            highlight, {RGBColor[0.074189364461738, 0.5290608072022583, 
+             0.0075379568169680325], Thick, Arrow[#1], 
+            
+            Text[#3 /. highlight[a_] :> a, Mean[#1], 
+             Background -> Opacity[.6, White]]}, {Blue, Arrowheads[1/18], 
+            Thick, Arrow[#1], 
+            Text[#3, Mean[#1], Background -> Opacity[.6, White]]}]]}] &), 
+    options]];
+
+doOrderedPlot[expr_] := 
+ Module[{myExtLegs = 
+    mergeLegsTreeLevelList[consistentGraphToTrees[expr], 
+       expr /. in[a_] :> Sow[in[a]] // Reap // Last // Flatten // Union] // 
+      First // First},
+  myExtLegs = 
+   rotateList[myExtLegs, 
+    Position[myExtLegs, First[Sort[myExtLegs]]] // Flatten // First]; 
+  doOrderedPlot[expr, myExtLegs]]
+
+cutDisplayRule[expr_] := 
+ expr /. in[a_] :> "" /. 
+  Graphics[a___] :> 
+   Graphics @@ (List[a] /. {-l[b_] :> Style[-l[b], {Blue, Bold, Large}] , 
+       l[b_] :> Style[l[b], {Blue, Bold, Large}],
+       k[b_] :> Style[b, {Purple, Bold, Large}]})
+
+
+cutDisplayRule[expr_] := 
+ expr /. in[a_] :> "" /. 
+  Graphics[a___] :> 
+   Graphics @@ (List[a] /. {l[b_] :> Style[l[b], {Blue, Bold, Large}],
+       k[b_] :> Style[b, {Purple, Bold, Large}]})
+
+
+
+cutGraph3D[graph_] := 
+ Graph3D[HighlightGraph[
+   mathematicaGraph[
+    graph], (First /@ 
+      Select[graphPlotForm[graph], (#[[-1]] // Head) === l &]) /. 
+    Rule :> UndirectedEdge]]
+ 
+stagePlot[sGraph_, order_] := 
+ Manipulate[Module[{myLegs, StylePrint, dasRed, myTrees},
+   myTrees = consistentGraphToTrees[sGraph][[ 1 ;; Round[x] ]];
+   StylePrint[x];
+   myLegs = myTrees /. Atree :> List /. -a_ :> a // Flatten // Union;
+   StylePrint[myLegs];
+          (dasRed[#] = True) & /@ myLegs;
+   StylePrint[{#, dasRed[#]}] & /@ myLegs;
+   Show[GraphicsRow[{doOrderedPlot[sGraph, k /@ Range[4], 
+       EdgeRenderingFunction -> (({If[True === dasRed[#3], {Red, Arrow[#]}, 
+             Arrow[#]], 
+            Inset[#3, Mean[#1], Automatic, Automatic, #[[1]] - #[[2]], 
+             Background -> White]}) &), PlotLabel -> x], 
+      MatrixForm[myTrees /. Atree :> neckl]}]]], 
+  {{x, 1}, 1, 
+          Length[sGraph[[1]]], 1}] 
+
+canonVertexList[
+  vertexFormGraph[
+   graph_]] := (# /. 
+     neckl[a__] :> 
+      neckl[rotateList[a, 
+        Position[a, Sort[a] // First] // Flatten // First]]) & /@ graph
+
+getOffShellDotsBetter[graph_] := 
+    Module[{trees = consistentGraphToTrees[graph], ext, 
+        int = getIntLegs[graph], legs}, 
+      ext = getExtLegsFromTrees[trees]; 
+       legs = Join[int, ext]; ToRules[
+         (Reduce[daRInp = Flatten[#1], daList = 
+                  Sort[Union[Flatten[Outer[ulp[#1, #2] & , 
+                           Join[ext[[{-1}]], int], Join[ext, int]]]], 
+                     OrderedQ[(Abs[#1] /. {k[a_] :> a, l[b_] :> 
+                                    2^b, ulp[a_, b_] :> a*b} & ) /@ 
+                           {#1, #2}] & ] // Reverse, Backsubstitution -> 
+                  True] & )[Join[(ulp[#1, #1] == 0 & ) /@ ext, 
+             Append[trees, Atree[ext]] /. Atree[a__] :> 
+                 (ulp[#1, Plus @@ a] == 0 & ) /@ legs]]]]
+
+polGaugeAnsatz[gr_,param_] :=
+    Module[ {Subscript},
+        Subscript[a_,b_] :=
+            a[b];
+        {legs = Length[getExtLegsFromTrees[consistentGraphToTrees[gr]]],
+        cyc = getMyCycles[gr]};
+        uniqDots = Outer[ulp[#1,#2]&,getMyUniqLegs[gr],
+          getMyUniqLegs[gr]]/.ulp[Subscript[k, a_],Subscript[k, a_]]:>{}/.
+           getIndepRules[{Atree[getExtLegsFromTrees[
+          consistentGraphToTrees[gr]]]}]/.-a_:>a/.Plus:>List//Flatten//Union;
+        uniqPol = Map[\[Epsilon][Subscript[k, #]]&,Range[legs]];
+        uniqMom = uniqDots/.Times:>List/.ulp[a_,b_]:>{a,b}//Flatten//Union;
+        StylePrint[{legs,uniqDots,uniqPol,uniqMom}];
+        justPol = Outer[ulp[#1,#2]&,uniqPol,uniqPol,1]/.ulp[\[Epsilon][a_],\[Epsilon][a_]]:>{}//Flatten;
+        polDots = Outer[ulp[#1,#2]&,uniqPol,Join[uniqMom,uniqPol],1]/.
+                 ulp[\[Epsilon][a_],\[Epsilon][a_]]:>{}/.ulp[a_,\[Epsilon][a_]]:>{}//Flatten//Union;
+        allDots = Union[Join[polDots,uniqDots]];
+        numVert = legs-2;
+        numVert+LOOPS+1
+        eFunc[expr_] :=
+            Module[ {powerCountChances = expr /. 
+            ulp[a_,b_]:>ulp[Subscript[k, 1],Subscript[k, 2]] /. 
+            Power[a_,b_]:>b /. ulp[Subscript[k, 1],Subscript[k, 2]]:>1},
+                0=!=D[expr /. Subscript[k, a_]:>k /.Subscript[l, a_]:>l/. 
+                Subscript[\[Epsilon], a_]:>\[Epsilon] /.ulp[a_,b_]:>a b,{\[Epsilon],powerCountChances}]
+            ];
+        dFunc[expr_] :=
+            And@@Table[0===D[expr /. ulp[a_,b_]:>a b,
+            {c[[1]],c[[2]]-3} ],{c,cyc}];
+        someCands[allGuys_, whatIhave_] :=
+            Module[ {},
+                {
+                 nextRound = Complement[
+                   allGuys /. \[Epsilon][Subscript[k, a_]] :> 
+                     Subscript[\[Epsilon], a], 
+                   Union[Flatten[{whatIhave} /. Times :> List /. 
+                         ulp[a_, b_] :> {a, b} /. \[Epsilon][Subscript[k, a_]] :> 
+                         Subscript[\[Epsilon], a] /. Subscript[l, a_] :> {} /. 
+                      Subscript[k, a_] :> {}
+                     ]
+                    ]
+                   ]
+                 };
+                stylePrint[{"nextRound",nextRound}];
+                stylePrint[{"allDots", allDots}];
+                stylePrint[{"whatIhave", whatIhave}];
+                nextStuff = Union[
+                      Flatten[
+                       Union[
+                           Flatten[
+                            Outer[ulp, nextRound, nextRound] /.
+                               ulp[Subscript[k, a_], Subscript[k, a_]] :> {} /.
+                              ulp[Subscript[\[Epsilon], a_], 
+                                Subscript[\[Epsilon], a_]] :> {} /. 
+                             ulp[Subscript[k, a_], Subscript[\[Epsilon], a_]] :> {}
+                            ]
+                           ] /. decentRules /. -(a_) :> a /. Plus :> List
+                       ]
+                      ];
+                stylePrint[{"nextRound", nextRound}];
+                stylePrint[{"nextStuff", nextStuff}];
+                stylePrint[{"whatIhave", whatIhave}];
+                stylePrint[{"zeDotGoods",zeDotGoods = allDots /. \[Epsilon][Subscript[k, a_]] :> Subscript[\[Epsilon], a]}];
+                stylePrint[{"Intersection", getIntersect = Intersection[zeDotGoods,nextStuff]}];
+                stylePrint[Map[{#,dFunc[#],eFunc[#]}&,getIntersect]];
+                Select[stylePrint[voop = whatIhave*getIntersect];
+                       voop, dFunc[#1] && eFunc[#1] &]
+            ];
+        "aboutToNumIt"//StylePrint;
+        num = Nest[Union[Flatten[someCands[ 
+           Join[uniqMom,uniqPol]
+           ,#]&/@#]]&,{1},numVert+LOOPS+1]/.Subscript[\[Epsilon], a_]:>\[Epsilon][Subscript[k, a]];
+        Map[a[param,#]&,Range[Length[num]]].num
+    ]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Color rep code*)
+
+
 colorForm[vertexFormGraph[gr_]] :=
     colorForm[consistentGraphToTrees[vertexFormGraph[gr]]]
 
@@ -1173,7 +1445,10 @@ newColorSimplify[expr_] :=
     tr[x___,a[1],y___]:>tr[a[1],y,x] /.{
     tr[a[4],a[3]]->tr[a[3],a[4]],tr[a[4],a[2]]->tr[a[2],a[4]],tr[a[3],a[2]]->tr[a[2],a[3]]}/.tr[a___]:>ctr[a]
 
-(* Momenta and spinor code *)
+
+(* ::Subsubsection::Closed:: *)
+(*Momenta and spinor code*)
+
 
 Spinor & Some Mom Code (including complex)
 
@@ -1187,17 +1462,6 @@ spb[x__] :=
     Signature[{x}]*spb @@ Sort[{x}] /;  !OrderedQ[{x}] && FreeQ[{x}, Pattern]
 spb[jj_, jj_] :=
     0
-
-
-scramble[list_] := (* Put list in bucket, remove list from bucket *)
-    Module[ {hat = list,bucket = {},curN = 0},
-        While[Length[hat]>0,
-        curN = Random[Integer,{1,Length[hat]}];
-        bucket = Join[bucket,hat[[{curN}]]];
-        hat = Join[hat[[Range[curN-1]]],
-        hat[[Range[curN+1,Length[hat]]]]]];
-        bucket
-    ]
 
 
 (* Complex spinor code *)
@@ -1514,7 +1778,10 @@ buildAllMomenta[mtrees_,n__] :=
         Table[buildMomenta[good[[1,1]]],{i,1,n}]
     ]
 
-(* 4D SUSY CUTS  *)
+
+(* ::Subsubsection::Closed:: *)
+(*4D SUSY cuts *)
+
 
 mergeLegsTreeLevel[trees_, a_] :=
     Module[ {bt = Select[trees, Count[#, a /. -b_ :> b, \[Infinity]] > 0 &], gt = a /. -b_ :> b},
@@ -1546,16 +1813,15 @@ getExtLegsFromTrees[trees_] :=
     Select[Tally[Flatten[trees /. Atree[a__] :> a /. 
     -(a_) :> a]], #1[[2]] === 1 & ]
 
-getExtLegs[graph_]:=(
-	getExtLegsFromTrees[
-		consistentGraphToTrees[ graph ]
-	])
-
 
 getKRules[trees_] :=
     ToRules[Reduce[trees /. Atree[a__] :> 0 == Plus @@ a, 
     Append[Sort[getIntLegsFromTrees[trees]], Last[Sort[getExtLegsFromTrees[trees]]]]]]
 
+
+
+(* ::Subsubsection::Closed:: *)
+(*KK & BCJ basis*)
 
 
 kkExpress[Atree[legs_],first_, second_] :=
@@ -1653,6 +1919,10 @@ bcjExpress[Atree[legs__],first_,second_,third_] :=
 
 bcjExpress[Atree[legs__,spins__],first_,second_,third_] :=
     bcjExpress[Atree[legs],first,second,third]/.Atree[a__]:>Atree[a,a/.Thread[Rule[legs,spins]]]
+
+
+(* ::Subsubsection::Closed:: *)
+(*4d SUSY Cut*)
 
 
 collapseTrees[trees_] :=
@@ -1779,8 +2049,8 @@ processCut[{cut__,ruleSets__}] :=
         (num/denom/.in[a_]:>flat[in[a]/.kRules])*1/(Times@@(uLsq[Flatten[{#/.kRules}/.Plus:>List]]&/@flatGuys))
     ]
 
-(* We decide on particles and antiparticle signs based on helicity.
-   This is how BlackHat does it.  Cf. Freedman arxiv 0808.1720 eq. 4.6
+(* Resolve sign ambiguity of spinor products based on helicity.
+   cf. Blackhat and  Freedman arxiv 0808.1720 eq. 4.6
 *)
 
 FermionArrowSign[expr_] :=
@@ -1867,12 +2137,6 @@ getTheCutOld[cut_] :=
         ]
     ]
 
-(* Do[daFunction[all[[i]]] = i,{i,1,Length[all]}];
-
-getGraphsUsedCode :=
-    SparseArray[#->1&/@((daFunction/@(recBeast/@RHSPARENTS//Flatten))/.daFunction[a_]:>{}//Flatten//Union),Length[all]]//Normal//FromDigits[#,2]&
-*)
-
 Clear[findAllMhV];
 findAllMhV[tree_] :=
     findAllMhV[tree] = Module[ {nextSteps,runHash,legs = Select[Flatten[tree/.Atree[a__]:>a/.-a_:>a]//Union,#[[1]]=!=k&]},
@@ -1944,7 +2208,9 @@ getTheCutCompare[cut_,cutGraphSoln_] :=
 
 
 
-(* Jacobi Code *)
+(* ::Subsubsection::Closed:: *)
+(*Jacobi graph op code...*)
+
 
 tHat[graph_, leg_] := 
  Module[{trees = consistentGraphToTrees[graph], a, b, rest, neg, 
@@ -1964,7 +2230,7 @@ tHat[graph_, leg_] :=
   myTree = Join[rest, {Atree[{k1, k2, k3, k4}]}]; 
        StylePrint[myTree]; rules = mapToAbsGenericTrees[myTree]; 
        StylePrint[{"rules", "InputForm"[rules]}]; 
-       zeReals[
+       toGraph[
    Join[rest, {Atree[{k4, k1, at}], Atree[{-at, k2, k3}]}] /. 
     at :> leg]]
 
@@ -1997,42 +2263,13 @@ uHat[graph_, leg_] :=
         StylePrint[myTree];
         rules = mapToAbsGenericTrees[myTree];
         StylePrint[{"rules", "InputForm"[rules]}];
-        zeReals[Join[rest, {Atree[{k1, k3, au}], Atree[{-au, k2, k4}]}] /. au :> leg]
+        toGraph[Join[rest, {Atree[{k1, k3, au}], Atree[{-au, k2, k4}]}] /. au :> leg]
     ]
 
-uHatOld[graph_, leg_] :=
-    Module[ {trees = consistentGraphToTrees[graph], a, b, rest, neg, pos, 
-      counter, as, at, au, k1, k2, k3, k4, ls, myEqnFs, myNormCrap, zat, 
-      i, allDaFudges, myTree, rules, fancyRules, Print, allFunction, 
-      StylePrint},
-        allFunction[num_] :=
-            metaHolder["graphSet"][[num]];
-        Clear[fancyRules, SS, TT, UU, nGraphs, theNUMS, myTree, rules];
-        StylePrint[{"graph,leg", graph, leg}];
-        {a, b} = 
-        Select[trees, Count[#1, leg, \[Infinity]] > 0 &];
-        rest = Complement[trees, {a, b}];
-        {pos, neg} = 
-        If[ Count[a, -leg, \[Infinity]] > 0,
-            {b, a},
-            {a, b}
-        ];
-        counter = 0;
-        While[pos[[1]][[-1]] =!= leg, pos = Atree[rotateList[pos[[1]], 2]]];
-        counter = 0;
-        While[neg[[1]][[1]] =!= -leg, 
-         neg = Atree[rotateList[neg[[1]], 2]]];
-        {k1, k2, a} = 
-        pos[[1]];
-        {a, k3, k4} = neg[[1]];
-        myTree = Join[rest, {Atree[{k1, k2, k3, k4}]}];
-        StylePrint[myTree];
-        rules = mapToAbsGenericTrees[myTree];
-        StylePrint[{"rules", "InputForm"[rules]}];
-        Join[rest, {Atree[{k3, k1, au}], Atree[{-au, k4, k2}]}] /. 
-         au :> leg//zeReals
-    ]
-  
+
+
+(* ::Subsubsection:: *)
+(*Tree operations*)
 
 
 getDotRules[trees_] :=
@@ -2103,6 +2340,20 @@ colorToStuff[num_, listA_, allFunction_] :=
         Thread[getMyUniqLegs[allFunction[num]] -> listA] /. 
     getColorlyDotRules[num, listA]
 
+
+someLabels={a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q,
+              r, s, t, u, v, w, x, y, 
+             z};
+
+
+someAddlLabels=Outer[ToExpression[StringJoin[ToString[#1],ToString[#2]]]&,
+someLabels,
+someLabels]//Flatten//Union;
+
+
+daLabelList=Flatten[{someLabels,someAddlLabels}];
+
+
 indepLegLabels[trees_] :=
     Module[ {internalIndep, externalIndep, indep, Subscript},
         indep = getIndepLegs[trees];
@@ -2110,9 +2361,7 @@ indepLegLabels[trees_] :=
             a[b];
         internalIndep = 
          Subscript[
-            l, #] & /@ ({a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q,
-              r, s, t, u, v, w, x, y, 
-             z}[[Range[
+            l, #] & /@ (daLabelList[[Range[
               Length[Intersection[getIntLegsFromTrees[trees], indep]]]]]);
         externalIndep =
          intIndep = 
@@ -2121,10 +2370,12 @@ indepLegLabels[trees_] :=
         Join[externalIndep, internalIndep]
     ];
 
+
 mapToAbsGeneric[graph_] :=
     Module[ {trees = consistentGraphToTrees[graph]},
         mapToAbsGenericTrees[trees]
     ]
+
 
 mapToAbsGenericTrees[trees_] :=
     Module[ {},
@@ -2134,7 +2385,6 @@ mapToAbsGenericTrees[trees_] :=
              Rule[getIndepLegs[trees], indepLegLabels[trees]]])), (Thread[
            Rule[getIndepLegs[trees], indepLegLabels[trees]]])]
     ]
-
 
 
 DEFAULTLABELSET[LEGS_,LOOPS_] :=
@@ -2178,7 +2428,7 @@ matchGraphOrAdd[nG_, rule_, metaHolder_, badMaxSYMCheck_] :=
 
 
 
-scoreRules[rules_] :=
+scoreRulesForLegs[rules_] :=
     Module[ {Subscript},
         Subscript[a_, b_] :=
             a[b];
@@ -2204,7 +2454,7 @@ getMatchingGraphsOne[graphA_, graphFunc_,
              StylePrint["just ext labeled rules"];
              StylePrint[{"ext Label rules", extLabelRules}];
              extLabelRules = 
-              Sort[extLabelRules, OrderedQ[scoreRules /@ {#1[[1]], #2[[1]]}] &];
+              Sort[extLabelRules, OrderedQ[scoreRulesForLegs /@ {#1[[1]], #2[[1]]}] &];
              preUnion = ((StylePrint[{num, #1[[1]], #1[[2]]}];
                           {getMyUniqLegs[graphFunc[num]] /. #1[[1]], #1[[2]]}) &) /@ 
                extLabelRules[[{1}]];
@@ -2220,8 +2470,19 @@ getMatchingGraphsOne[graphA_, graphFunc_,
 toGraph[trees_] :=
     toGraph[trees] = vertexFormGraph[trees /. Atree[a__] :> neckl[a]]
 
-zeReals[trees_] :=
-    toGraph[trees]
+zeReals[trees_] := (StylePrint["zeReals is deprecated, use
+toGraph"];
+    toGraph[trees])
+    
+
+
+planarQ[graph_]:=planarQ[graph]=PlanarGraphQ[
+	mathematicaGraph[
+		vertexFormGraph[Append[graph[[1]],
+		neckl[-getExtLegs[graph]]]]]];
+
+
+
 
 jacobiGraphOnLeg[graph_, leg_, metaHolder_, excludeGraphFunc_] :=
     Module[ {trees = consistentGraphToTrees[graph], a, b, rest, neg, pos, 
@@ -2364,7 +2625,7 @@ noCrappyGuysInJacEqn[jacEqn_] :=
     ]
 
 reformatEqnRule[eqn_, num_,LEGS_,LOOPS_] :=
-    Module[ {},
+    Module[ {StylePrint},
         RuleDelayed[
            ToExpression[
             StringReplace[ ToString[#[[1]]], 
@@ -2403,7 +2664,7 @@ reformatEqnRule[eqn_, num_] :=
 
 
 reformatEqn[eqn_, num_,LEGS_,LOOPS_] :=
-     Module[ {colors = 
+     Module[ {StylePrint,colors = 
            
     Reap[(List @@ eqn) /. color[a_][b_] :> Sow[color[a][b]]][[2]] // 
             Flatten // Union,
@@ -2461,11 +2722,13 @@ reformatEqn[eqn_, num_,LEGS_,LOOPS_] :=
 
 
 Clear[SPECIALNUM];
-iterate[{oldRules_, oldEqns_}] :=
+iterate[{oldRules_, oldEqns_}] := (StylePrint["DEFAULT LEGS/LOOPS GLOBVAL USED IN iterate"];iterate[{oldRules,oldEqns},LEGS,LOOPS])
+
+iterate[{oldRules_, oldEqns_},LEGS_,LOOPS_] :=
     If[ ! ListQ[SPECIALNUM],
         Throw["Must define SPECIALNUM for iterate"],
         Module[ {nextRules = oldRules, cand, rulez, candidateSearch, nZ, nzU,
-           newNumz = {}},
+           newNumz = {},StylePrint},
             candidateSearch = 
              Select[oldEqns, (Length[Flatten[twoFersMap[#]]] > 2 &&
                  
@@ -2489,7 +2752,7 @@ iterate[{oldRules_, oldEqns_}] :=
                    StylePrint[{"cand", cand}];
                    If[ cand === True || cand === True[[1]] || cand === {}[[1]],
                        StylePrint["Already got one!"],
-                       rulez = reformatEqnRule[eqn /. nextRules, cand];
+                       rulez = reformatEqnRule[eqn /. nextRules, cand,LEGS,LOOPS];
                        StylePrint[rulez // Short];
                        If[ Head[rulez] === RuleDelayed,
                            nextRules = Append[nextRules, rulez],
@@ -2524,56 +2787,6 @@ findGoodSet[graph_] :=
             goodSet
         ]
     ]
-
-
-(* ::Text:: *)
-(*findAllCorruptEdgeIso[graph_] :=*)
-(* Module[{myGoodset, myFirstClust, myRules},*)
-(*  mmyGoodset = myGoodset = findGoodSet[graph // stripPriveledge];*)
-(*  If[Flatten[myGoodset] === {},*)
-(*   isomorphicEdgeRulesAll[corruptGraph[graph],*)
-(*     corruptGraph[graph]],*)
-(*   mmyFirstClust = myFirstClust = #[[2]] & /@ First[GatherBy[myGoodset, Last[#] &]];*)
-(*   Flatten[Table[isomorphicEdgeRulesAll[myFirstClust[[1]], disGr], {disGr, myFirstClust}], 1] // Union]]*)
-(**)
-
-
-(* ::Text:: *)
-(*findAllCorruptIso[graph_] :=*)
-(* Module[{myGoodset, myFirstClust, myRules},*)
-(*  mmyGoodset = myGoodset = findGoodSet[graph // stripPriveledge];*)
-(*  If[Flatten[myGoodset] === {},*)
-(*   isomorphicRulesAllWithSig[corruptGraph[graph],*)
-(*     corruptGraph[graph]],*)
-(*   mmyFirstClust = myFirstClust = #[[2]] & /@ First[GatherBy[myGoodset, Last[#] &]];*)
-(*   Flatten[Table[isomorphicRulesAllWithSig[myFirstClust[[1]], disGr], {disGr, myFirstClust}], 1] // Union]]*)
-(**)
-
-
-(* ::Text:: *)
-(*findAllCorruptEdgeIso[graph_] := Module[{comb, myGoodset, myFirstClust, myRules, myStrippedGuy = stripPriveledge[graph]}, mmyGoodset = myGoodset = findGoodSet[myStrippedGuy]; *)
-(*    If[Flatten[myGoodset] === {}, *)
-(*   isomorphicEdgeRulesAll[corruptGraph[graph], corruptGraph[graph]],*)
-(*   makingTheWorldSafe = First /@ mmyGoodset;*)
-(*   redGuyz = Flatten[ makingTheWorldSafe] // Union; *)
-(*   redGuyz = -redGuyz; While[Min[(Length /@ (pairsOfRedundancy = Map[#[[1]] &, #] & /@ GatherBy[zzzz =*)
-(*              Table[{myGuy, styleprint[rrrr = First /@ Select[*)
-(*                    styleprint[{myGuy, qqqq = Position[*)
-(*                    consistentGraphToTrees[myStrippedGuy]*)
-(*                      , myGuy]}]; qqqq, Length[#] === 3 &, 1]]; rrrr}, {myGuy, redGuyz}], #[[2]] &]) // Union)] < 2,*)
-(*    redGuyz = redGuyz /. Map[# -> -# &, Flatten[Select[pairsOfRedundancy, Length[#] === 1 &, 1]]];*)
-(*    ];*)
-(*   strippedGraph = myStrippedGuy /. Flatten[Map[ Sort[{-# -> {}, # -> {}}] &, Rest[#]] & /@ pairsOfRedundancy] /. neckl[a__] :> neckl[Flatten[a]];*)
-(*   goodIso = isomorphicEdgeRulesAll[strippedGraph, strippedGraph];*)
-(*   goodIso = Table[Join[rules, rules /. Rule[a_, b_] :> Rule[-a, -b]] // Flatten // Union, {rules, goodIso}];*)
-(*   stupidIsos = Outer[comb[Sort[{##} // Flatten]] &, ##, 1] &[Sequence @@ Table[Table[Thread[pair -> perm],*)
-(*          {perm, Permutations[pair]}], {pair, pairsOfRedundancy}]] // Flatten // Union;*)
-(*   stupidIsos = stupidIsos /. comb[rules__] :> comb[Join[rules, rules /. Rule[a_, b_] :> Rule[-a, -b]] // Flatten // Union];*)
-(*   Map[( Join[#, Map[# /. Rule[a_, b_] :> Rule[-a, -b] &, #]] // Flatten // Union) &, Map[Union[Flatten[{# (* Don't get to even if yoy wanna*)
-(*          ,Reverse/@# *) }]] &, ((Sort /@ Flatten[stupidIsos /. comb[rules__] :> Flatten[*)
-(*               {bbbb = (# /. Rule[a_, b_] :> Rule[a, b /. rules]),*)
-(*                you = #; Select[rules, Position[First /@ you, #[[1]]] === {} &&*)
-(*                   Position[First /@ you, -#[[1]]] === {} &]}] & /@ goodIso, 1]) // Union) ]  ] ]]*)
 
 
 monsterPairingOld[poR_,rule_] :=
@@ -3303,8 +3516,170 @@ getNUOTreeWithContacts[n_] :=
                                                   ])
 
 
-(* ::Section:: *)
-(*Some container code*)
+(* ::Subsubsection:: *)
+(*Graph Web from Jacobi*)
+
+
+graphExclusionF[a_]:=internalOneLoopTriangleQ[a]||
+internalOneLoopBubbleQ[a]||
+internalOneLoopTadpoleQ[a];
+
+
+graphToWeb[aGraph_,graphExclusionF_]:=Module[{web,cutGraphData,
+bad,jacEqns,jacEqn,jacEqns2,jacEqns2b,jacEqns2a,numNEWGRAPHS,zcutLeg,val,zeNum,zeGraph,zenum,gnL,allFunction,graphExclusion,nextEqn},
+bad=jacEqns=jacEqn=jacEqns2=jacEqns2b=jacEqns2a={};
+LEGS=getExtLegs[aGraph]//Length;
+LOOPS=Length[getMyCycles[aGraph]];
+web["LEGS"]=LEGS;
+web["LOOPS"]=LOOPS;
+cutGraphData["graphSet"]={aGraph} ;
+numNEWGRAPHS:=Length[cutGraphData["graphSet"]];
+cutGraphData["worryList"]=Range[numNEWGRAPHS];
+jacEqns={};
+allFunction[i_]:=cutGraphData["graphSet"][[i]];
+graphExclusion[a_]:=graphExclusion[a]=graphExclusionF[a];
+Timing[While[Length[cutGraphData["worryList"]]>0,zenum=First[cutGraphData["worryList"]];
+StylePrint["Doing "<>ToString[zenum]];
+cutGraphData["worryList"]=Rest[cutGraphData["worryList"]];
+zeGraph=allFunction[zenum];
+gnL=Select[getIntLegs[zeGraph],Head[#]=!=zcutLeg&];
+jacEqns=Join[jacEqns,Table[StylePrint[{zenum,leg,val=jacobiGraphOnLeg[zeGraph,leg,cutGraphData,graphExclusion]}];
+val,{leg,gnL}]];
+StylePrint[{zenum,Length[cutGraphData["worryList"]],Length[jacEqns]}];
+];
+];
+web["graphSet"]=cutGraphData["graphSet"];
+web["jacEqns"]=Sort[Complement[(jacEqns//Flatten),{True}],OrderedQ[(StringLength/@ToString/@({#1,#2}/.color[{a_}][{b1_,b2_,b3_,b4___}]:>color[{a}][{b1,b2,b3}]))+(1/4) (StringLength/@ToString/@({#1,#2}))]&];
+web
+]
+
+
+addMastersToWeb[web_]:=Module[{StylePrint,jacEqns,jacEqns2=web["jacEqns"],jacEqns2a, jacEqns2b,specialRules,buildRules,zeroRules,jacEqns3,bipartiteGraph,bi1,bish,bi2,bish2,ubi2,candSingleMasters,allFunction,
+theGuys,others,jEq3,bad={},planarGraphs,newRules={},restEqns,myNumz,aRule,known,nonZero,nonZeroUnion, nr,nzU,allDa,numNEWGRAPHS,outSideRules,
+all=web["graphSet"],nextEqn},jacEqns=jacEqns2;numNEWGRAPHS=Length[all];
+allFunction[i_]:=all[[i]];
+StylePrint[{"Length of jacEqns",Length[jacEqns2]}];
+jacEqns2a=Tally[jacEqns2,twoFersEqual];
+jacEqns2b=#[[1]]&/@jacEqns2a;
+jacEqns2=jacEqns2b;
+StylePrint[{"jacEqns2b",Length[jacEqns2b]}];
+specialRules[SPECIALNUM_]:=Thread[Rule[SPECIALNUM,Table[{},{Length[SPECIALNUM]}]]];
+buildRules[rules_,eqns_,SN_]:=Module[{newEqns=Flatten[#]&/@(eqns/.rules/.specialRules[SN]),cntr=Length[rules],rle,nextEqns,num},While[(nextEqns=Select[newEqns,Length[#]===1&,1])=!={},nextEqns=nextEqns[[1]];
+num=nextEqns[[1]];
+rle=num->{};
+newEqns=Select[Map[Flatten[#/.rle]&,newEqns],#=!={}&];
+cntr++;];
+cntr];
+zeroRules=reformatEqnRule[color[{#}][DEFAULTLABELSET[LEGS,LOOPS]]==0,#,LEGS,LOOPS]&/@bad;
+jacEqns3=(jacEqns2/.zeroRules)//Flatten//Union;
+jacEqns3=Union[Select[jacEqns3,#=!=True&],SameTest->twoFersEqual];
+bipartiteGraph=Map[twoFersMap,jacEqns2]//Union;
+bi1=Select[bipartiteGraph,(Length[#]>1&&Length[Union[#]]>1)&];
+bish=Map[#->{}&,Select[bipartiteGraph,(Length[#]===1)&]//Flatten];
+bi2=Select[Flatten[#/.bish]&/@bipartiteGraph,(Length[#]>1&&Length[Union[#]]>1)&];
+bish2=Map[#->{}&,Select[Flatten[#/.bish]&/@bipartiteGraph,(Length[#]===1)&]//Flatten];
+ubi2=Union[Flatten[bi2]];
+StylePrint[ubi2];
+SPECIALNUM=If[Length[all]===1,{1},
+candSingleMasters=Select[ubi2,buildRules[bish,bi2,{#}]==numNEWGRAPHS-1&];
+If[candSingleMasters=!={}, Say[" *** YeS Cand Single Masters***"];
+   First[ Sort[candSingleMasters, OrderedQ[ If[planarQ[ web["graphSet"][[#]] ],-100*1/#,100*1/#]&/@{#1,#2}]&]],
+   Say[" *** No Cand Single Masters, trying dbl planar***"];
+   planarGraphs=Select[ubi2,planarQ[all[[#]]]&];
+   pGC=Flatten[Table[Table[{planarGraphs[[i]],
+   planarGraphs[[j]]},
+   {j,i+1,Length[planarGraphs]}],
+   {i,1,Length[planarGraphs]}],1];
+   candidatePlanarPairs=Select[pGC, buildRules[bish,bi2,#]==numNEWGRAPHS-Length[#]&];];
+   If[Length[candidatePlanarPairs]>0, 
+      Say[" *** Yes dbl planar***"];
+      First[candidatePlanarPairs],
+      Say[" *** No dbl planar, try 1 np+1pl ***"];
+      pGC=Flatten[Table[Table[{planarGraphs[[i]],
+         ubi2[[j]]},{j,1,Length[ubi2]}],{i,1,Length[planarGraphs]}],1];
+      candidatePlanarPairs=Select[pGC, buildRules[bish,bi2,#]==numNEWGRAPHS-Length[#]&];
+      If[Length[candidatePlanarPairs]>0,
+          Say[" *** Yes 1 np+1pl ***"];
+           First[candidatePlanarPairs],
+          Say["***** go for 3 np!!"];
+          pGT=Flatten[Table[Table[Table[{planarGraphs[[i]],planarGraphs[[j]],planarGraphs[[k]]},{k,j+1,Length[planarGraphs]}],
+               {j,i+1,Length[planarGraphs]}],{i,1,Length[planarGraphs]}],2];
+          candidatePlanarTrips=Select[pGT, buildRules[bish,bi2,#]==numNEWGRAPHS-Length[#]&];
+          If[Length[candidatePlanarTrips]>0,
+             candidatePlanarTrips//First,
+             Throw["Fault--nomastersfound"]
+             ]
+      ]
+    ]
+   ];
+StylePrint[{"Candidate Single Masters!",candSingleMasters,"THIS SHOULD BE 1"}];
+StylePrint[{"SPECIALNUM RIGHT HERE",SPECIALNUM}];
+theGuys=Select[Range[Length[all]],twoExternalVertices[allFunction[#]]&];
+others=Complement[Range[numNEWGRAPHS],theGuys];
+StylePrint[{"pre crappyGraph defGood",definitelyGood}];
+definitelyGood=Select[others,!crappyGraph[allFunction[#]]&];
+StylePrint[{"post crappyGraph defGood",definitelyGood}];
+jEq3=Select[jacEqns2,noCrappyGuysInJacEqn[#]&];
+Print[{"jEq3a",jEq3//Length}];
+jEq3=Flatten[jacEqns];
+Print[{"jEq3b",jEq3//Length}];
+bad=((twoFersMap[#]&/@Select[jEq3,(Length[twoFersMap[#]])==1&]))//Flatten//Union;
+Print[{"definitelyGood",definitelyGood}];
+Print[{"bad",bad}];
+Print[{"jEq3",jEq3//Length}];
+LEGS=web["LEGS"];
+LOOPS=web["LOOPS"];
+zeroRules=reformatEqnRule[color[{#}][DEFAULTLABELSET[LEGS,LOOPS]]==0,#,LEGS,LOOPS]&/@bad;
+Print[{"DEFAULTLABELSET",DEFAULTLABELSET[LEGS,LOOPS]}];
+Print[{"zeroRules",zeroRules//Length}];
+jacEqns3=(jEq3/.zeroRules)//Flatten//Union;
+jacEqns3=Union[Select[jacEqns3,#=!=True&],SameTest->twoFersEqual];
+StylePrint[{"nR first",newRules//Length}];
+planarGraphs=Select[Range[numNEWGRAPHS],planarQ[all[[#]]]&];
+        StylePrint[planarGuys];
+
+Module[{c=0},known=Join[SPECIALNUM];
+newRules=zeroRules;
+restEqns=unionSortExprs[Select[jacEqns3,(twoFersMap[#]//Length)===2&&(twoFersMap[#]//Union//Length)===2&]];
+While[Length[restEqns=unionSortExprs[Select[restEqns//.newRules,(#=!=True&&(twoFersMap[#]//Length)===2&&(twoFersMap[#]//Union//Length)===2)&]]]>0&&restEqns=!={True},
+StylePrint[{"indapreloop",newRules//Length,Length[restEqns]}];
+StylePrint[{"First eqn",nextEqn=First[restEqns]}]; 
+(myNumz=Reap[(nextEqn/.color[{a_}][b__]:>Sow[a])][[2]]/.Map[#->{}&,known]/.Map[#->{}&,
+planarGraphs]//Flatten);
+(* StylePrint[{"Da my numz",myNumz}];
+StylePrint[{"Da my known",known}];
+StylePrint[{"Da my rules",newRules}];
+StylePrint[{"Da my planar",planarGraphs}]; *)
+
+If[myNumz=!={},
+ StylePrint[{"whoopdee",c++;myNumz.c,c}];
+myNumz=First[Flatten[myNumz/.Map[#->{}&,planarGuys]]];
+StylePrint[{"Decided",myNumz}];
+aRule=reformatEqnRule[nextEqn,myNumz,LEGS,LOOPS];
+StylePrint[{"aRule",aRule}];
+newRules=Append[newRules,aRule]/.True:>{}//Flatten//Union;
+known=Join[SPECIALNUM,Map[#[[1]]&,newRules]/.color[{a_}][b__]:>Sow[a]//Reap//Last//Flatten//Union]//Flatten//Union];
+Say[{"nR",newRules//Length,restEqns//Length}];]
+];
+nonZero=List@@(And@@(jacEqns3//.newRules));
+nonZeroUnion=Select[unionSortExprs[nonZero],Length[Union[twoFersMap[#]]]>1&];
+nr=newRules//Flatten//Sort;
+nzU=nonZeroUnion//Flatten//Sort;
+StylePrint[{"nR Second",nr}];
+StylePrint[{"nzU Second",nzU}];
+
+{nr,nzU}=FixedPoint[Map[Union[Flatten[#]]&,iterate[#,LEGS,LOOPS]]&,{nr,nzU}];
+StylePrint[{"nR Third",nr}];
+StylePrint[{"nzU Third",nzU}];
+Say[{"Did we get it all?",Length[all]-Length[nr],Length[SPECIALNUM]}];
+outSideRules=nr;
+web["jacSoln"]=nr;
+web
+]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Delayed Graph Container Code*)
 
 
 priveledgeSomeLegs[graph_,legs_] :=
@@ -3327,24 +3702,6 @@ minStripPriveledge[graph_] :=
     red[a_, 0, b_] :> red[a, 0, 1]]]
 
 
-(* ::Text:: *)
-(*Clear[corruptCutList]; corruptCutList[cutList_] := corruptCutList[cutList] = Module[{n = 0,*)
-(*       StylePrint, ret}, Print[Style[{"Working out a corrupt list.", *)
-(*         DateString[]}]];*)
-(*   ret = Map[*)
-(*     (n++;*)
-(*          If[Head[graphHashCode[toGraph[#]]] === Graph,*)
-(*              #,*)
-(*              If[Mod[n, 100], Print[Style[{"Got through another hundred", n}]];];*)
-(*              StylePrint["Corrupt " <> ToString[n] <> "??"];*)
-(*           consistentGraphToTrees[corruptGraph[toGraph[#]]]]) &,*)
-(*        cutList];*)
-(*      Print[Style[{"Worked out a corrupt list.", *)
-(*         DateString[]}]];*)
-(*      ret*)
-(*   ] (* Deprecated  Jan 2017 *)*)
-
-
 Clear[corruptCutList];
 corruptCutList[cutList_] :=
     corruptCutList[cutList] = Module[ {n = 0,
@@ -3357,70 +3714,6 @@ corruptCutList[cutList_] :=
                                   DateString[]}]];
                                   ret
                               ]
-
-
-(* ::Text:: *)
-(*Clear[corruptGraph];*)
-(*corruptGraph[graph_] := corruptGraph[graph] = Module[{cG = minStripPriveledge[If[Head[graphHashCode[graph]] === Graph,*)
-(*           graph,*)
-(*           Module[{StylePrint, intLegs = getIntLegs[graph], n = 0, goodSet = {}},*)
-(*            While[goodSet === {} && n < 6,*)
-(*                n++; StylePrint["Trying " <> ToString[n]];*)
-(*                goodSet = Select[Subsets[intLegs, {n}], Head[graphHashCode[priveledgeSomeLegs[graph, Flatten[{#}]]]] === Graph &, 1];*)
-(*                StylePrint[{"Got ", goodSet}];  *)
-(*              ];*)
-(*               If[n > 6, Throw["Some crappy corrupt graphs here.! n>6!!!"]];*)
-(*            priveledgeSomeLegs[graph, goodSet[[1]]]*)
-(*            ]*)
-(*           ]*)
-(*          ]}, If[Head[graphHashCode[cG]] =!= Graph, Throw["Need better minStripPriveledge!"]]; cG]*)
-
-
-Clear[corruptGraph];
-corruptGraph[graph_] :=
-    corruptGraph[graph] = If[ Head[graphHashCode[graph]]===Graph,
-                              graph,
-                              Module[ {goodSet,cG,StylePrint},
-                                  cG = minStripPriveledge[If[ Head[graphHashCode[graph]]===Graph,
-                                                              graph,
-                                                              Module[ {intLegs = getIntLegs[graph],n = 0},
-                                                                  goodSet = {};
-                                                                  While[goodSet==={}&&n<24,
-                                                                     n++;
-                                                                     StylePrint["Trying "<>ToString[n]];
-                                                                     goodSet = Select[Subsets[intLegs,{n}],
-                                                                        Head[graphHashCode[priveledgeSomeLegs[graph,
-                                                                        Flatten[{#}]]]]===Graph&,1];
-                                                                     StylePrint[{"Got ", goodSet}];  
-                                                                   ];
-                                                                  If[ n>=24,
-                                                                      n = 0;
-                                                                      intLegs = Sort[getIntLegs[graph]];
-                                                                      goodSet = {};
-                                                                      While[goodSet==={}&&n<24,
-                                                                       n++;
-                                                                       StylePrint["Trying "<>ToString[n]];
-                                                                       goodSet = Select[Subsets[intLegs,{n}],
-                                                                          Head[graphHashCode[priveledgeSomeLegs[graph,
-                                                                          Flatten[{#}]]]]===Graph&,1];
-                                                                       StylePrint[{"Got ", goodSet}];  
-                                                                      ];
-                                                                  ];
-                                                                  If[ n>=24,
-                                                                      Throw["Some crappy corrupt graphs here.! n>24!!!"]
-                                                                  ];
-                                                                  priveledgeSomeLegs[graph,goodSet[[1]]]
-                                                              ]
-                                                          ]
-                                      ];
-                                  If[ Head[graphHashCode[cG]]=!=Graph,
-                                      Print[{"Had to box oldschool!  minStripPriveledge insufficient for crazy graph.",
-                                      stripPriveledge[graph]}];
-                                      priveledgeSomeLegs[graph,goodSet[[1]]],
-                                      cG
-                                  ]
-                              ]
-                          ]
 
 
 getHardCutId[graph_,cutList_] :=
@@ -3840,8 +4133,8 @@ DotPower[expr_, a_, n_] :=
     ];
 
 
-(* ::Subsubsection:: *)
-(*vacuum stuff*)
+(* ::Subsubsection::Closed:: *)
+(*Vacuum Code*)
 
 
 toVacuum[graph_] :=
@@ -4007,208 +4300,8 @@ cutSumFormat[cut__] :=
        myRule]]], Large]]
 
 
-doOrderedPlot[expr_, myExtLegs_, options___] := Module[{},
-  doMomentaPlot[expr, 
-   VertexCoordinateRules -> 
-    MapIndexed[
-     neckl[-{#}] -> 
-       N[{-Cos[(#2[[1]] - 3/2) 2 \[Pi]/Length[myExtLegs]], 
-         Sin[(#2[[1]] - 3/2) 2 \[Pi]/Length[myExtLegs]]}] &, myExtLegs],
-   MultiedgeStyle -> 50, 
-   EdgeRenderingFunction -> (Flatten[{If[
-         Head[#3 /. -a_ :> a] === l, {Dashed, Red, Arrowheads[{{.05, .75}}], 
-          Thick, Arrow[#1], 
-          Text[#3, Mean[#1], Background -> Opacity[.6, White]]},
-         If[
-          Head[#3 /. -a_ :> a] === 
-           highlight, {RGBColor[0.074189364461738, 0.5290608072022583, 
-            0.0075379568169680325], Thick, Arrow[#1], 
-           Text[#3 /. highlight[a_] :> a, Mean[#1], 
-            Background -> Opacity[.6, White]]}, {Blue, Arrowheads[1/18], 
-           Thick, Arrow[#1], 
-           Text[#3, Mean[#1], Background -> Opacity[.6, White]]}]]}] &), 
-   options]]
-
-doOrderedPlotRand[expr_, myExtLegs_, options___] := 
-  Module[{firstRules = 
-     MapIndexed[
-      neckl[-{#}] -> 
-        N[{-Cos[(#2[[1]] - 3/2) 2 \[Pi]/Length[myExtLegs]], 
-          Sin[(#2[[1]] - 3/2) 2 \[Pi]/Length[myExtLegs]]}] &, myExtLegs], 
-    fisk},
-   fisk = graphPlotForm[expr] /. firstRules /. neckl[a___] :> Sow[neckl[a]] //
-         Reap // Last // Flatten // Union;
-   firstRules = 
-    Join[firstRules, 
-     MapIndexed[#1 -> 
-        N[3/4 Mean[# /. neckl[a__] :> (neckl[{-#}] & /@ a) /. firstRules /. 
-            neckl[___] :> RandomReal[{-2, -2}/3, 2]]
-         ] &, fisk]];
-   doMomentaPlot[expr, VertexCoordinateRules -> firstRules,
-    MultiedgeStyle -> 50, 
-    EdgeRenderingFunction -> (Flatten[{If[
-          Head[#3 /. -a_ :> a] === l, {Dashed, Red, Arrowheads[{{.05, .75}}], 
-           Thick, Arrow[#1], 
-           Text[#3, Mean[#1], Background -> Opacity[.6, White]]},
-          If[
-           Head[#3 /. -a_ :> a] === 
-            highlight, {RGBColor[0.074189364461738, 0.5290608072022583, 
-             0.0075379568169680325], Thick, Arrow[#1], 
-            
-            Text[#3 /. highlight[a_] :> a, Mean[#1], 
-             Background -> Opacity[.6, White]]}, {Blue, Arrowheads[1/18], 
-            Thick, Arrow[#1], 
-            Text[#3, Mean[#1], Background -> Opacity[.6, White]]}]]}] &), 
-    options]];
-
-doOrderedPlot[expr_] := 
- Module[{myExtLegs = 
-    mergeLegsTreeLevelList[consistentGraphToTrees[expr], 
-       expr /. in[a_] :> Sow[in[a]] // Reap // Last // Flatten // Union] // 
-      First // First},
-  myExtLegs = 
-   rotateList[myExtLegs, 
-    Position[myExtLegs, First[Sort[myExtLegs]]] // Flatten // First]; 
-  doOrderedPlot[expr, myExtLegs]]
-
-cutDisplayRule[expr_] := 
- expr /. in[a_] :> "" /. 
-  Graphics[a___] :> 
-   Graphics @@ (List[a] /. {-l[b_] :> Style[-l[b], {Blue, Bold, Large}] , 
-       l[b_] :> Style[l[b], {Blue, Bold, Large}],
-       k[b_] :> Style[b, {Purple, Bold, Large}]})
-
-
-cutDisplayRule[expr_] := 
- expr /. in[a_] :> "" /. 
-  Graphics[a___] :> 
-   Graphics @@ (List[a] /. {l[b_] :> Style[l[b], {Blue, Bold, Large}],
-       k[b_] :> Style[b, {Purple, Bold, Large}]})
-
-
-
-cutGraph3D[graph_] := 
- Graph3D[HighlightGraph[
-   mathematicaGraph[
-    graph], (First /@ 
-      Select[graphPlotForm[graph], (#[[-1]] // Head) === l &]) /. 
-    Rule :> UndirectedEdge]]
- 
-stagePlot[sGraph_, order_] := 
- Manipulate[Module[{myLegs, StylePrint, dasRed, myTrees},
-   myTrees = consistentGraphToTrees[sGraph][[ 1 ;; Round[x] ]];
-   StylePrint[x];
-   myLegs = myTrees /. Atree :> List /. -a_ :> a // Flatten // Union;
-   StylePrint[myLegs];
-          (dasRed[#] = True) & /@ myLegs;
-   StylePrint[{#, dasRed[#]}] & /@ myLegs;
-   Show[GraphicsRow[{doOrderedPlot[sGraph, k /@ Range[4], 
-       EdgeRenderingFunction -> (({If[True === dasRed[#3], {Red, Arrow[#]}, 
-             Arrow[#]], 
-            Inset[#3, Mean[#1], Automatic, Automatic, #[[1]] - #[[2]], 
-             Background -> White]}) &), PlotLabel -> x], 
-      MatrixForm[myTrees /. Atree :> neckl]}]]], 
-  {{x, 1}, 1, 
-          Length[sGraph[[1]]], 1}] 
-
-canonVertexList[
-  vertexFormGraph[
-   graph_]] := (# /. 
-     neckl[a__] :> 
-      neckl[rotateList[a, 
-        Position[a, Sort[a] // First] // Flatten // First]]) & /@ graph
-
-getOffShellDotsBetter[graph_] := 
-    Module[{trees = consistentGraphToTrees[graph], ext, 
-        int = getIntLegs[graph], legs}, 
-      ext = getExtLegsFromTrees[trees]; 
-       legs = Join[int, ext]; ToRules[
-         (Reduce[daRInp = Flatten[#1], daList = 
-                  Sort[Union[Flatten[Outer[ulp[#1, #2] & , 
-                           Join[ext[[{-1}]], int], Join[ext, int]]]], 
-                     OrderedQ[(Abs[#1] /. {k[a_] :> a, l[b_] :> 
-                                    2^b, ulp[a_, b_] :> a*b} & ) /@ 
-                           {#1, #2}] & ] // Reverse, Backsubstitution -> 
-                  True] & )[Join[(ulp[#1, #1] == 0 & ) /@ ext, 
-             Append[trees, Atree[ext]] /. Atree[a__] :> 
-                 (ulp[#1, Plus @@ a] == 0 & ) /@ legs]]]]
-
-polGaugeAnsatz[gr_,param_] :=
-    Module[ {Subscript},
-        Subscript[a_,b_] :=
-            a[b];
-        {legs = Length[getExtLegsFromTrees[consistentGraphToTrees[gr]]],
-        cyc = getMyCycles[gr]};
-        uniqDots = Outer[ulp[#1,#2]&,getMyUniqLegs[gr],
-          getMyUniqLegs[gr]]/.ulp[Subscript[k, a_],Subscript[k, a_]]:>{}/.
-           getIndepRules[{Atree[getExtLegsFromTrees[
-          consistentGraphToTrees[gr]]]}]/.-a_:>a/.Plus:>List//Flatten//Union;
-        uniqPol = Map[\[Epsilon][Subscript[k, #]]&,Range[legs]];
-        uniqMom = uniqDots/.Times:>List/.ulp[a_,b_]:>{a,b}//Flatten//Union;
-        StylePrint[{legs,uniqDots,uniqPol,uniqMom}];
-        justPol = Outer[ulp[#1,#2]&,uniqPol,uniqPol,1]/.ulp[\[Epsilon][a_],\[Epsilon][a_]]:>{}//Flatten;
-        polDots = Outer[ulp[#1,#2]&,uniqPol,Join[uniqMom,uniqPol],1]/.
-                 ulp[\[Epsilon][a_],\[Epsilon][a_]]:>{}/.ulp[a_,\[Epsilon][a_]]:>{}//Flatten//Union;
-        allDots = Union[Join[polDots,uniqDots]];
-        numVert = legs-2;
-        numVert+LOOPS+1
-        eFunc[expr_] :=
-            Module[ {powerCountChances = expr /. 
-            ulp[a_,b_]:>ulp[Subscript[k, 1],Subscript[k, 2]] /. 
-            Power[a_,b_]:>b /. ulp[Subscript[k, 1],Subscript[k, 2]]:>1},
-                0=!=D[expr /. Subscript[k, a_]:>k /.Subscript[l, a_]:>l/. 
-                Subscript[\[Epsilon], a_]:>\[Epsilon] /.ulp[a_,b_]:>a b,{\[Epsilon],powerCountChances}]
-            ];
-        dFunc[expr_] :=
-            And@@Table[0===D[expr /. ulp[a_,b_]:>a b,
-            {c[[1]],c[[2]]-3} ],{c,cyc}];
-        someCands[allGuys_, whatIhave_] :=
-            Module[ {},
-                {
-                 nextRound = Complement[
-                   allGuys /. \[Epsilon][Subscript[k, a_]] :> 
-                     Subscript[\[Epsilon], a], 
-                   Union[Flatten[{whatIhave} /. Times :> List /. 
-                         ulp[a_, b_] :> {a, b} /. \[Epsilon][Subscript[k, a_]] :> 
-                         Subscript[\[Epsilon], a] /. Subscript[l, a_] :> {} /. 
-                      Subscript[k, a_] :> {}
-                     ]
-                    ]
-                   ]
-                 };
-                stylePrint[{"nextRound",nextRound}];
-                stylePrint[{"allDots", allDots}];
-                stylePrint[{"whatIhave", whatIhave}];
-                nextStuff = Union[
-                      Flatten[
-                       Union[
-                           Flatten[
-                            Outer[ulp, nextRound, nextRound] /.
-                               ulp[Subscript[k, a_], Subscript[k, a_]] :> {} /.
-                              ulp[Subscript[\[Epsilon], a_], 
-                                Subscript[\[Epsilon], a_]] :> {} /. 
-                             ulp[Subscript[k, a_], Subscript[\[Epsilon], a_]] :> {}
-                            ]
-                           ] /. decentRules /. -(a_) :> a /. Plus :> List
-                       ]
-                      ];
-                stylePrint[{"nextRound", nextRound}];
-                stylePrint[{"nextStuff", nextStuff}];
-                stylePrint[{"whatIhave", whatIhave}];
-                stylePrint[{"zeDotGoods",zeDotGoods = allDots /. \[Epsilon][Subscript[k, a_]] :> Subscript[\[Epsilon], a]}];
-                stylePrint[{"Intersection", getIntersect = Intersection[zeDotGoods,nextStuff]}];
-                stylePrint[Map[{#,dFunc[#],eFunc[#]}&,getIntersect]];
-                Select[stylePrint[voop = whatIhave*getIntersect];
-                       voop, dFunc[#1] && eFunc[#1] &]
-            ];
-        "aboutToNumIt"//StylePrint;
-        num = Nest[Union[Flatten[someCands[ 
-           Join[uniqMom,uniqPol]
-           ,#]&/@#]]&,{1},numVert+LOOPS+1]/.Subscript[\[Epsilon], a_]:>\[Epsilon][Subscript[k, a]];
-        Map[a[param,#]&,Range[Length[num]]].num
-    ]
-
-
+(* ::Subsubsection::Closed:: *)
+(*Private Methods*)
 
 
 Begin["`Private`"]
