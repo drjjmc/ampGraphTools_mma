@@ -59,7 +59,7 @@ multiLoopGraph[mm_,ll_] :=
     ];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Expression tools*)
 
 
@@ -89,7 +89,7 @@ scramble[list_] := (* Put list in bucket, remove list from bucket *)
     ]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Access graph meta data *)
 
 
@@ -270,7 +270,7 @@ uLsqCleaningRule :=
     uLsq[a__]:>uLsq[Flatten[a/.Plus:>List]]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Scaffolding graph operations, dressing, etc.*)
 
 
@@ -1212,7 +1212,7 @@ corruptGraph[graph_] :=
                           ]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*More plot code*)
 
 
@@ -2227,7 +2227,7 @@ uHat[graph_, leg_] :=
 
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Tree operations*)
 
 
@@ -3480,7 +3480,7 @@ getNUOTreeWithContacts[n_] :=
                                                   ])
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Graph Web from Jacobi*)
 
 
