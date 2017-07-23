@@ -5,10 +5,12 @@
 (* Created by the Wolfram Workbench Jul 15, 2016 *)
 
 BeginPackage["ampGraphTools`"]
-$AmpGTVersion = .55;  
+$AmpGTVersion = .57;  
 
 
 (* Exported symbols added here with SymbolName::usage *) 
+
+
 StylePrint["Welcome to ampGraphTools, version "<>ToString[$AmpGTVersion]<>", 
 a work in progress, but fairly simple implementation of
 ideas in http://arxiv.org/abs/arXiv:1506.00974 and refs 
@@ -57,7 +59,7 @@ multiLoopGraph[mm_,ll_] :=
     ];
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Expression tools*)
 
 
@@ -87,7 +89,7 @@ scramble[list_] := (* Put list in bucket, remove list from bucket *)
     ]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Access graph meta data *)
 
 
@@ -268,7 +270,7 @@ uLsqCleaningRule :=
     uLsq[a__]:>uLsq[Flatten[a/.Plus:>List]]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Scaffolding graph operations, dressing, etc.*)
 
 
@@ -1210,7 +1212,7 @@ corruptGraph[graph_] :=
                           ]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*More plot code*)
 
 
@@ -1340,80 +1342,37 @@ getOffShellDotsBetter[graph_] :=
              Append[trees, Atree[ext]] /. Atree[a__] :> 
                  (ulp[#1, Plus @@ a] == 0 & ) /@ legs]]]]
 
+
 polGaugeAnsatz[gr_,param_] :=
-    Module[ {Subscript},
-        Subscript[a_,b_] :=
-            a[b];
-        {legs = Length[getExtLegsFromTrees[consistentGraphToTrees[gr]]],
-        cyc = getMyCycles[gr]};
-        uniqDots = Outer[ulp[#1,#2]&,getMyUniqLegs[gr],
-          getMyUniqLegs[gr]]/.ulp[Subscript[k, a_],Subscript[k, a_]]:>{}/.
-           getIndepRules[{Atree[getExtLegsFromTrees[
-          consistentGraphToTrees[gr]]]}]/.-a_:>a/.Plus:>List//Flatten//Union;
-        uniqPol = Map[\[Epsilon][Subscript[k, #]]&,Range[legs]];
-        uniqMom = uniqDots/.Times:>List/.ulp[a_,b_]:>{a,b}//Flatten//Union;
-        StylePrint[{legs,uniqDots,uniqPol,uniqMom}];
-        justPol = Outer[ulp[#1,#2]&,uniqPol,uniqPol,1]/.ulp[\[Epsilon][a_],\[Epsilon][a_]]:>{}//Flatten;
-        polDots = Outer[ulp[#1,#2]&,uniqPol,Join[uniqMom,uniqPol],1]/.
-                 ulp[\[Epsilon][a_],\[Epsilon][a_]]:>{}/.ulp[a_,\[Epsilon][a_]]:>{}//Flatten//Union;
-        allDots = Union[Join[polDots,uniqDots]];
-        numVert = legs-2;
-        numVert+LOOPS+1
-        eFunc[expr_] :=
-            Module[ {powerCountChances = expr /. 
-            ulp[a_,b_]:>ulp[Subscript[k, 1],Subscript[k, 2]] /. 
-            Power[a_,b_]:>b /. ulp[Subscript[k, 1],Subscript[k, 2]]:>1},
-                0=!=D[expr /. Subscript[k, a_]:>k /.Subscript[l, a_]:>l/. 
-                Subscript[\[Epsilon], a_]:>\[Epsilon] /.ulp[a_,b_]:>a b,{\[Epsilon],powerCountChances}]
-            ];
-        dFunc[expr_] :=
-            And@@Table[0===D[expr /. ulp[a_,b_]:>a b,
-            {c[[1]],c[[2]]-3} ],{c,cyc}];
-        someCands[allGuys_, whatIhave_] :=
-            Module[ {},
-                {
-                 nextRound = Complement[
-                   allGuys /. \[Epsilon][Subscript[k, a_]] :> 
-                     Subscript[\[Epsilon], a], 
-                   Union[Flatten[{whatIhave} /. Times :> List /. 
-                         ulp[a_, b_] :> {a, b} /. \[Epsilon][Subscript[k, a_]] :> 
-                         Subscript[\[Epsilon], a] /. Subscript[l, a_] :> {} /. 
-                      Subscript[k, a_] :> {}
-                     ]
-                    ]
-                   ]
-                 };
-                stylePrint[{"nextRound",nextRound}];
-                stylePrint[{"allDots", allDots}];
-                stylePrint[{"whatIhave", whatIhave}];
-                nextStuff = Union[
-                      Flatten[
-                       Union[
-                           Flatten[
-                            Outer[ulp, nextRound, nextRound] /.
-                               ulp[Subscript[k, a_], Subscript[k, a_]] :> {} /.
-                              ulp[Subscript[\[Epsilon], a_], 
-                                Subscript[\[Epsilon], a_]] :> {} /. 
-                             ulp[Subscript[k, a_], Subscript[\[Epsilon], a_]] :> {}
-                            ]
-                           ] /. decentRules /. -(a_) :> a /. Plus :> List
-                       ]
-                      ];
-                stylePrint[{"nextRound", nextRound}];
-                stylePrint[{"nextStuff", nextStuff}];
-                stylePrint[{"whatIhave", whatIhave}];
-                stylePrint[{"zeDotGoods",zeDotGoods = allDots /. \[Epsilon][Subscript[k, a_]] :> Subscript[\[Epsilon], a]}];
-                stylePrint[{"Intersection", getIntersect = Intersection[zeDotGoods,nextStuff]}];
-                stylePrint[Map[{#,dFunc[#],eFunc[#]}&,getIntersect]];
-                Select[stylePrint[voop = whatIhave*getIntersect];
-                       voop, dFunc[#1] && eFunc[#1] &]
-            ];
-        "aboutToNumIt"//StylePrint;
-        num = Nest[Union[Flatten[someCands[ 
-           Join[uniqMom,uniqPol]
-           ,#]&/@#]]&,{1},numVert+LOOPS+1]/.Subscript[\[Epsilon], a_]:>\[Epsilon][Subscript[k, a]];
-        Map[a[param,#]&,Range[Length[num]]].num
-    ]
+    Module[{eLegs,LEGS,LOOPS,uniqLegs,
+uniqDots,uniqPol,singlePol,doublePol,
+maxPowerCount,curGuys,\[Epsilon]Used,nextBatch},
+      eLegs=getExtLegs[gr];
+	LEGS=Length[eLegs];
+LOOPS=Length[getMyCycles[gr]];
+uniqLegs=getMyUniqLegs[gr];
+uniqDots=Map[#[[2]]/.ulp[a_,b_]:>Sow[ulp[a,b]]&,getOffShellDots[gr]]  //Reap//Last//Flatten//Union;
+uniqPol=Map[\[Epsilon][#]&,eLegs];
+singlePol=Outer[ulp[#1,#2]&,uniqLegs,uniqPol]/.ulp[First[uniqLegs],Last[uniqPol]]:>{}//Flatten//Union;
+doublePol=
+Outer[ulp[#1,#2]&,uniqPol,uniqPol]/.ulp[a_,a_]:>{}//Flatten//Union;
+maxPowerCount=2*(LEGS+LOOPS-1)-2;
+curGuys=Flatten[{singlePol,doublePol}];
+While[maxPowerCount>0,
+maxPowerCount-=2;
+curGuys=Table[\[Epsilon]Used=expr/.\[Epsilon][a_]:>Sow[\[Epsilon][a]]//Reap//Last//Flatten//Union;
+nextBatch=If[(Length[uniqPol]-Length[\[Epsilon]Used])==0,
+uniqDots,
+If[(Length[uniqPol]-Length[\[Epsilon]Used])-1<=maxPowerCount,
+(* i.e. I can afford one mistake :-) *)
+{singlePol,doublePol},
+doublePol]];
+nextBatch=(nextBatch/.(ulp[_,#]:>{}&/@\[Epsilon]Used))//Flatten//Union;If[nextBatch==={},{},
+Map[expr*#&,nextBatch]],
+{expr,curGuys}]//Flatten//Union;
+];
+MapIndexed[a[param,#2[[1]]]*#&,curGuys]//Total
+]
 
 
 (* ::Subsubsection::Closed:: *)
@@ -2413,7 +2372,7 @@ matchGraphOrAdd[nG_, rule_, metaHolder_, badMaxSYMCheck_] :=
         0,
         Module[ {all = metaHolder["graphSet"], 
           toWorry = metaHolder["worryList"], num, StylePrint},
-            num = Select[Range[Length[all]], isIsomorphic[all[[#]], nG] &, 1];
+            num = Select[Range[Length[all]], isIsomorphic[corruptGraph[all[[#]]],corruptGraph[ nG]] &, 1];
             StylePrint[{"Here we are now", num, InputForm[nG], InputForm[all]
               }];
             If[ num === {},
@@ -2440,7 +2399,7 @@ scoreRulesForLegs[rules_] :=
     ];
 
 isomorphicRulesAllWithSig[graphA_, graphB_] :=
-    Module[ { rules = isomorphicEdgeRulesAll[graphA, graphB], nl},
+    Module[ { rules = isomorphicEdgeRulesAll[corruptGraph[graphA],corruptGraph[ graphB]], nl},
         Table[{rule, newGraphSig[graphA /. rule, graphB]}, {rule, rules}]
     ]
 
@@ -2455,9 +2414,11 @@ getMatchingGraphsOne[graphA_, graphFunc_,
              StylePrint[{"ext Label rules", extLabelRules}];
              extLabelRules = 
               Sort[extLabelRules, OrderedQ[scoreRulesForLegs /@ {#1[[1]], #2[[1]]}] &];
-             preUnion = ((StylePrint[{num, #1[[1]], #1[[2]]}];
+             preUnionA = ((StylePrint[{num, #1[[1]], #1[[2]]}];
                           {getMyUniqLegs[graphFunc[num]] /. #1[[1]], #1[[2]]}) &) /@ 
                extLabelRules[[{1}]];
+              preUnion=preUnionA/.graphAlgRules[graphA]/.
+         red[a_,1,b_]:>-k[a]/.red[a_,0,b_]:>l[a];
              StylePrint[{"preUnion", preUnion}];
              extLabelRules = 
               Union[preUnion];
@@ -2515,8 +2476,8 @@ jacobiGraphOnLeg[graph_, leg_, metaHolder_, excludeGraphFunc_] :=
         SS = Join[rest, {Atree[{k1, k2, as}], Atree[{-as, k3, k4}]}];
         TT = Join[rest, {Atree[{k1, k4, at}], Atree[{-at, k3, k2}]}];
         UU = Join[rest, {Atree[{k1, k3, au}], Atree[{-au, k2, k4}]}];
-        nGraphs = zeReals /@ {SS, TT, UU};
-        StylePrint["Just did zeReals"];
+        nGraphs = toGraph /@ {SS, TT, UU};
+        StylePrint["Just built toGraph"];
         theNUMS = (matchGraphOrAdd[#1, {as -> leg, at -> leg, 
          au -> leg}, metaHolder, excludeGraphFunc] & ) /@ nGraphs;
         StylePrint[theNUMS];
@@ -3013,7 +2974,10 @@ getOffShellDots[graph_] :=
     Module[ {trees = consistentGraphToTrees[graph],ext,int = getIntLegs[graph],legs},
         ext = getExtLegsFromTrees[trees];
         legs = Join[int,ext];
-        Join[Map[ulp[#,#]==0&,ext], Append[trees,Atree[ext]] /.Atree[a__]:>Map[ulp[#,Plus@@a]==0&,legs]]//Reduce[Flatten[#],(daList = Sort[Outer[ulp[#1,#2]&,Join[ext[[{-1}]],int],Join[ext,int]]//Flatten//Union,OrderedQ[(Abs[#]/.{k[a_]:>a ,
+        Join[Map[ulp[#,#]==0&,ext], Append[trees,Atree[ext]] /.Atree[a__]:>
+           Map[ulp[#,Plus@@a]==0&,legs]]//Reduce[Flatten[#],
+               (daList = Sort[Outer[ulp[#1,#2]&,Join[ext[[{-1}]],int],
+                  Join[ext,int]]//Flatten//Union,OrderedQ[(Abs[#]/.{k[a_]:>a ,
         l[b_]:>2^b,ulp[a_,b_]:>a b})&/@{#1,#2}]&]),Backsubstitution->True]&//ToRules
     ]
 
@@ -3378,7 +3342,7 @@ priveledgeLegs[graph_] :=
         Join[newLs, newKs, 
            tree /. Thread[-allLs -> (allLs /. l[a_] :> -red[a, 0, 1])] /. 
             Thread[allKs -> (allKs /. k[a_] :> -red[a, 1, 1])]] // Flatten //
-    zeReals
+    toGraph
     ]
 
 blowOutExt[graph_] := 
@@ -3396,7 +3360,7 @@ priveledgeExtLegs"];
        myNum = myK /. 
          k[a_] :> a; {myK -> -in[Prime[LOOPS + myNum]*2],
         -in[Prime[LOOPS + myNum]*2^(myNum + 1)] -> myK}, {myK, ks}]] //
-     zeReals];
+     toGraph];
     
 priveledgeExtLegs[graph_] :=
     Module[ {allKs, allLs, newLs, newKs, 
@@ -3416,13 +3380,13 @@ priveledgeExtLegs[graph_] :=
         Join[newLs, newKs, 
            tree /. Thread[-allLs -> (allLs /. l[a_] :> -red[a, 0, 1])] /. 
             Thread[allKs -> (allKs /. k[a_] :> -red[a, 1, 1])]] // Flatten //
-    zeReals
+    toGraph
     ]
 
 stripPriveledge[graph_] :=
     consistentGraphToTrees[graph] /. 
          Atree[{a_, b_}] :> {} /. -red[a_, 1, 1] :> 
-         k[a] /. -red[a_, 0, 1] :> -l[a] // Flatten // zeReals
+         k[a] /. -red[a_, 0, 1] :> -l[a] // Flatten // toGraph
 
 mapCutWithInsToLs[cut_] :=
     Module[ {maxL = 
@@ -3526,12 +3490,14 @@ internalOneLoopTadpoleQ[a];
 
 
 graphToWeb[aGraph_,graphExclusionF_]:=Module[{web,cutGraphData,
-bad,jacEqns,jacEqn,jacEqns2,jacEqns2b,jacEqns2a,numNEWGRAPHS,zcutLeg,val,zeNum,zeGraph,zenum,gnL,allFunction,graphExclusion,nextEqn},
+bad,jacEqns,jacEqn,jacEqns2,jacEqns2b,jacEqns2a,numNEWGRAPHS,
+zcutLeg,val,zeNum,zeGraph,zenum,gnL,allFunction,graphExclusion,nextEqn,StylePrint},
 bad=jacEqns=jacEqn=jacEqns2=jacEqns2b=jacEqns2a={};
 LEGS=getExtLegs[aGraph]//Length;
 LOOPS=Length[getMyCycles[aGraph]];
 web["LEGS"]=LEGS;
 web["LOOPS"]=LOOPS;
+StylePrint[web];
 cutGraphData["graphSet"]={aGraph} ;
 numNEWGRAPHS:=Length[cutGraphData["graphSet"]];
 cutGraphData["worryList"]=Range[numNEWGRAPHS];
@@ -3545,7 +3511,8 @@ zeGraph=allFunction[zenum];
 gnL=Select[getIntLegs[zeGraph],Head[#]=!=zcutLeg&];
 jacEqns=Join[jacEqns,Table[StylePrint[{zenum,leg,val=jacobiGraphOnLeg[zeGraph,leg,cutGraphData,graphExclusion]}];
 val,{leg,gnL}]];
-StylePrint[{zenum,Length[cutGraphData["worryList"]],Length[jacEqns]}];
+Say[{zenum,Length[cutGraphData["worryList"]],Length[jacEqns]}];
+web["graphSet"]=cutGraphData["graphSet"];
 ];
 ];
 web["graphSet"]=cutGraphData["graphSet"];
@@ -3580,17 +3547,21 @@ bi2=Select[Flatten[#/.bish]&/@bipartiteGraph,(Length[#]>1&&Length[Union[#]]>1)&]
 bish2=Map[#->{}&,Select[Flatten[#/.bish]&/@bipartiteGraph,(Length[#]===1)&]//Flatten];
 ubi2=Union[Flatten[bi2]];
 StylePrint[ubi2];
-SPECIALNUM=If[Length[all]===1,{1},
+SPECIALNUM=If[Length[all]===1,
+{1},
 candSingleMasters=Select[ubi2,buildRules[bish,bi2,{#}]==numNEWGRAPHS-1&];
 If[candSingleMasters=!={}, Say[" *** YeS Cand Single Masters***"];
-   First[ Sort[candSingleMasters, OrderedQ[ If[planarQ[ web["graphSet"][[#]] ],-100*1/#,100*1/#]&/@{#1,#2}]&]],
+myFoundMaster=
+   First[ Sort[candSingleMasters, OrderedQ[ If[planarQ[ web["graphSet"][[#]] ],-100*1/#,100*1/#]&/@{#1,#2}]&]];
+Say[{"I found this",myFoundMaster}];
+{myFoundMaster},
    Say[" *** No Cand Single Masters, trying dbl planar***"];
    planarGraphs=Select[ubi2,planarQ[all[[#]]]&];
    pGC=Flatten[Table[Table[{planarGraphs[[i]],
    planarGraphs[[j]]},
    {j,i+1,Length[planarGraphs]}],
    {i,1,Length[planarGraphs]}],1];
-   candidatePlanarPairs=Select[pGC, buildRules[bish,bi2,#]==numNEWGRAPHS-Length[#]&];];
+   candidatePlanarPairs=Select[pGC, buildRules[bish,bi2,#]==numNEWGRAPHS-Length[#]&];
    If[Length[candidatePlanarPairs]>0, 
       Say[" *** Yes dbl planar***"];
       First[candidatePlanarPairs],
@@ -3611,7 +3582,8 @@ If[candSingleMasters=!={}, Say[" *** YeS Cand Single Masters***"];
              ]
       ]
     ]
-   ];
+   ]
+];
 StylePrint[{"Candidate Single Masters!",candSingleMasters,"THIS SHOULD BE 1"}];
 StylePrint[{"SPECIALNUM RIGHT HERE",SPECIALNUM}];
 theGuys=Select[Range[Length[all]],twoExternalVertices[allFunction[#]]&];
@@ -3636,7 +3608,8 @@ jacEqns3=(jEq3/.zeroRules)//Flatten//Union;
 jacEqns3=Union[Select[jacEqns3,#=!=True&],SameTest->twoFersEqual];
 StylePrint[{"nR first",newRules//Length}];
 planarGraphs=Select[Range[numNEWGRAPHS],planarQ[all[[#]]]&];
-        StylePrint[planarGuys];
+        StylePrint[planarGraphs];
+planarGraphs={};
 
 Module[{c=0},known=Join[SPECIALNUM];
 newRules=zeroRules;
@@ -3644,16 +3617,15 @@ restEqns=unionSortExprs[Select[jacEqns3,(twoFersMap[#]//Length)===2&&(twoFersMap
 While[Length[restEqns=unionSortExprs[Select[restEqns//.newRules,(#=!=True&&(twoFersMap[#]//Length)===2&&(twoFersMap[#]//Union//Length)===2)&]]]>0&&restEqns=!={True},
 StylePrint[{"indapreloop",newRules//Length,Length[restEqns]}];
 StylePrint[{"First eqn",nextEqn=First[restEqns]}]; 
-(myNumz=Reap[(nextEqn/.color[{a_}][b__]:>Sow[a])][[2]]/.Map[#->{}&,known]/.Map[#->{}&,
-planarGraphs]//Flatten);
-(* StylePrint[{"Da my numz",myNumz}];
+(myNumz=Reap[(nextEqn/.color[{a_}][b__]:>Sow[a])][[2]]/.Map[#->{}&,known ] /.Map[#->{}&, planarGraphs]//Flatten);
+ Say[{"myNumz",myNumz}];
 StylePrint[{"Da my known",known}];
 StylePrint[{"Da my rules",newRules}];
-StylePrint[{"Da my planar",planarGraphs}]; *)
+StylePrint[{"Da my planar",planarGraphs}]; 
 
 If[myNumz=!={},
  StylePrint[{"whoopdee",c++;myNumz.c,c}];
-myNumz=First[Flatten[myNumz/.Map[#->{}&,planarGuys]]];
+myNumz=First[Flatten[myNumz/.Map[#->{}&,planarGraphs]]];
 StylePrint[{"Decided",myNumz}];
 aRule=reformatEqnRule[nextEqn,myNumz,LEGS,LOOPS];
 StylePrint[{"aRule",aRule}];
@@ -3674,6 +3646,7 @@ StylePrint[{"nzU Third",nzU}];
 Say[{"Did we get it all?",Length[all]-Length[nr],Length[SPECIALNUM]}];
 outSideRules=nr;
 web["jacSoln"]=nr;
+web["masterIds"]=SPECIALNUM;
 web
 ]
 
