@@ -1,5 +1,9 @@
 (* ::Package:: *)
 
+(* ::Subsubsection::Closed:: *)
+(*Open*)
+
+
 (* Mathematica Package *)
 
 (* Created by the Wolfram Workbench Jul 15, 2016 *)
@@ -59,7 +63,7 @@ multiLoopGraph[mm_,ll_] :=
     ];
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Expression tools*)
 
 
@@ -74,8 +78,8 @@ Say[a_]:=StylePrint[ Grid[{
 Flatten[{DateString[]," -- ", Flatten[{a}] }]}]]
 
 
-polRules[LEGS_]:={ulp[k[ a_],\[Epsilon][ a_]]:>0,
-    ulp[k[ 1],\[Epsilon][ LEGS]]->Total[-ulp[k[ #],\[Epsilon][ LEGS]]&/@Range[2,LEGS-1]]};
+polRules[LEGS_]:={ulp[k[ a_],\[Epsilon][ k[a_]]]:>0,
+    ulp[k[ 1],\[Epsilon][k[ LEGS]]]->Total[-ulp[k[ #],\[Epsilon][ k[LEGS]]]&/@Range[2,LEGS-1]]};
 
 
 scramble[list_] := (* Put list in bucket, remove list from bucket *)
@@ -93,7 +97,7 @@ scramble[list_] := (* Put list in bucket, remove list from bucket *)
 (*Access graph meta data *)
 
 
-getMyCycles[gr_] :=
+getMyCyclesOld[gr_] :=
     Module[ {g = System`Graph[gPF = graphPlotForm[gr]/.{a_->b_,c_}:>UndirectedEdge[a,b]],fc},
         fc = FindFundamentalCycles[g];
         Table[{Intersection@@(First[Complement[fc[[i]],
@@ -101,6 +105,16 @@ getMyCycles[gr_] :=
         )//First,Length[fc[[i]]]},{i,1,Length[fc]}]
     ]
  
+
+
+getMyCycles[graph_]:=Module[{uniqLegs=getMyUniqLegs[graph],
+extLegs=getExtLegs[graph],cycles=FindFundamentalCycles[mathematicaGraph[graph]],lLegs,cnt},
+lLegs=Complement[uniqLegs,extLegs];
+MapIndexed[(cnt[#2[[1]]]=Length[#])&,cycles];
+Table[  {leg, Sort[Map[#[[1]]&,Position[cycles,leg]]//Tally ,!OrderedQ[Last/@{#1,#2}]&]//First//First//cnt,Sort[Map[#[[1]]&,Position[cycles,leg]]//Tally ,!OrderedQ[Last/@{#1,#2}]&]//First//First},{leg,
+lLegs}]]
+
+
 getExtLegs[graph_]:=(
 	getExtLegsFromTrees[
 		consistentGraphToTrees[ graph ]
@@ -1212,7 +1226,7 @@ corruptGraph[graph_] :=
                           ]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*More plot code*)
 
 
@@ -1341,6 +1355,51 @@ getOffShellDotsBetter[graph_] :=
                   True] & )[Join[(ulp[#1, #1] == 0 & ) /@ ext, 
              Append[trees, Atree[ext]] /. Atree[a__] :> 
                  (ulp[#1, Plus @@ a] == 0 & ) /@ legs]]]]
+
+
+polGaugeAnsatzMaxPowers[gr_,param_,powerCycleDrop_] :=
+    Module[{eLegs,LEGS,LOOPS,uniqLegs,
+uniqDots,uniqPol,singlePol,doublePol,
+maxPowerCount,curGuys,\[Epsilon]Used,nextBatch,lMaps,StylePrint},
+lMz=lMaps=Map[Rule[#[[1]],#[[2]]-powerCycleDrop]&,getMyCycles[gr]];
+StylePrint[lMaps];
+      eLegs=getExtLegs[gr];
+	LEGS=Length[eLegs];
+LOOPS=Length[getMyCycles[gr]];
+uniqLegs=Select[getMyUniqLegs[gr],(#/.Append[lMaps,a_:>2])>=1&];
+StylePrint[uniqLegs];
+uniqDots=Outer[ulp[#1,#2]&, uniqLegs,uniqLegs]/.getIndepRules[{Atree[k/@Range[LEGS]]}]/.ulp[k[a_],k[a_]]:>{}/.ulp[a_,b_]:>Sow[ulp[a,b]]//Reap//Last//Flatten//Union;
+uniqDots=
+Select[uniqDots,(me=#; And@@((0==D[me/.ulp[a_,b_]:> a*b,{#[[1]],1+#[[2]]}])&/@lMaps))&];
+StylePrint[uniqDots];
+uniqPol=Map[\[Epsilon][#]&,eLegs];
+singlePol=Outer[ulp[#1,#2]&,uniqLegs,uniqPol]/.ulp[First[uniqLegs],Last[uniqPol]]:>{}/.
+ulp[k[a_],\[Epsilon][k[a_]]]:>{}//Flatten//Union;
+doublePol=
+Outer[ulp[#1,#2]&,uniqPol,uniqPol]/.ulp[a_,a_]:>{}//Flatten//Union;
+maxPowerCount=2*(LEGS+LOOPS-1)-2;
+curGuys=Flatten[{singlePol,doublePol}];
+cG=curGuys=If[Length[lMaps]>0,Select[curGuys,(me=#; And@@((0==D[me/.ulp[a_,b_]:> a*b,{#[[1]],1+#[[2]]}])&/@lMaps))&],curGuys];
+While[maxPowerCount>0,
+maxPowerCount-=2;
+curGuys=Table[\[Epsilon]Used=expr/.\[Epsilon][a_]:>Sow[\[Epsilon][a]]//Reap//Last//Flatten//Union;
+lUsed=((Rule@@#)&/@(expr/.l[a_]:>Sow[l[a]]//Reap//Last//Flatten//Tally));
+lUR=Map[#[[1]]->(#[[2]]-(#[[1]]/.lUsed/.l[a_]:>0))&,lMaps];
+nextBatch=If[(Length[uniqPol]-Length[\[Epsilon]Used])==0,
+uniqDots,
+If[(Length[uniqPol]-Length[\[Epsilon]Used])-1<=maxPowerCount,
+(* i.e. I can afford one mistake :-) *)
+{singlePol,doublePol},
+doublePol]];
+nextBatch=(nextBatch/.(ulp[_,#]:>{}&/@\[Epsilon]Used))//Flatten//Union;
+nextBatch=Select[nextBatch, ((#/.ulp[a_,b_]:>a/.lUR/.a_[b_]:>10)>0&&(#/.ulp[a_,b_]:>b/.lUR/.a_[b_]:>10)>0)&];
+
+If[nextBatch==={},{},
+Map[expr*#&,nextBatch]],
+{expr,curGuys}]//Flatten//Union;
+];
+MapIndexed[a[param,#2[[1]]]*#&,curGuys]//Total
+]
 
 
 polGaugeAnsatz[gr_,param_] :=
@@ -2227,7 +2286,7 @@ uHat[graph_, leg_] :=
 
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Tree operations*)
 
 
@@ -2291,13 +2350,10 @@ getKRulesNum[tree_, list_] :=
            Complement[Flatten[tree /. Atree[a__] :> a /. -(a_) :> a], 
        list]]]
 
-colorToStuff[num_, listA_, allFunction_] :=
-    daDress[num] /. 
-          
-    getKRulesNum[consistentGraphToTrees[allFunction[num]], 
-     getMyUniqLegs[allFunction[num]]] /. 
-        Thread[getMyUniqLegs[allFunction[num]] -> listA] /. 
-    getColorlyDotRules[num, listA]
+colorToStuff[num_, listA_, allFunction_] := 
+   daDress[num] /. getKRulesNum[consistentGraphToTrees[allFunction[num]], 
+       getMyUniqLegs[allFunction[num]]] /. Thread[getMyUniqLegs[allFunction[num]] -> 
+       listA] /. getColorlyDotRules[num, listA, allFunction];
 
 
 someLabels={a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q,
@@ -4274,7 +4330,7 @@ cutSumFormat[cut__] :=
 
 
 (* ::Subsubsection::Closed:: *)
-(*Private Methods*)
+(*Private Methods & Close*)
 
 
 Begin["`Private`"]
