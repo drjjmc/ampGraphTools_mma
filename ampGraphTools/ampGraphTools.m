@@ -63,7 +63,7 @@ multiLoopGraph[mm_,ll_] :=
     ];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Expression tools*)
 
 
@@ -223,8 +223,8 @@ Format[Atree[a__, h__]] :=
   SetAttributes[\[Tau], Orderless];
   Format[\[Tau][a_, b_]] := 
    DisplayForm[
-    RowBox[{"(", If[Head[a] === Plus, {"(", a, ")"}, a], 
-       "\[CenterDot]", If[Head[b] === Plus, {"(", b, ")"}, b], ")"} //
+    RowBox[{"(", If[Head[a]  ~SameQ~  Plus, {"(", a, ")"}, a], 
+       "\[CenterDot]", If[Head[b]  ~SameQ~  Plus, {"(", b, ")"}, b], ")"} //
        Flatten]];
   Format[uLsq[a__]] := 
    DisplayForm[SuperscriptBox[RowBox[{"(", Plus @@ a, ")"}], "2"]];
@@ -263,7 +263,7 @@ Lorentz[a__, b__] :=
     First[a]*First[b] - Rest[a].Rest[b]
 
 Lsq[a_] :=
-    If[ Head[a] === List,
+    If[ Head[a]  ~SameQ~  List,
         Lorentz[a, a],
         HoldForm[Lorentz[a, a]]
     ]
@@ -284,14 +284,14 @@ uLsqCleaningRule :=
     uLsq[a__]:>uLsq[Flatten[a/.Plus:>List]]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Scaffolding graph operations, dressing, etc.*)
 
 
 Clear[leftOf];
 leftOf[el_,neckl[list__]] :=
     Module[ {loc},
-        If[ (loc = Position[list,el,1])==={},
+        If[ (loc = Position[list,el,1]) ~SameQ~ {},
             Throw[
                 Error[{"Element Not In Necklace", 
                     el, 
@@ -304,7 +304,7 @@ leftOf[el_,neckl[list__]] :=
                         neckl[list]}]
                         ],
                 loc = loc[[1]];
-                If[ loc===1,
+                If[ loc ~SameQ~ 1,
                     list[[-1]],
                     list[[loc-1]]
                 ]
@@ -319,18 +319,18 @@ leftOf[el_,list__] :=
         If[ NumberQ[el]&&el<0,
             el = -el
         ];
-        If[ Head[list[[1]]]=!=neckl,
+        If[ Head[list[[1]]] ~UnsameQ~ neckl,
             Throw[Error["Not a Necklace in leftOf",el,list]]
         ];
         elCount = Count[list,elCanon,5];
-        If[ elCount==0,
+        If[ elCount === 0,
             elCanon = -elCanon,
             elCount = Count[list,elCanon,5];
         ];
-        If[ elCount==0,
+        If[ elCount === 0,
             Throw[Error["Not Present in leftOf[...,list]",list,el,elCanon]];
         ];
-        nextVal = If[ elCount==1,
+        nextVal = If[ elCount === 1,
                       leftOf[el,Select[list,MemberQ[#[[1]],el]&,1][[1]]],
                       leftOf[-el,Select[list,MemberQ[#[[1]],-el]&,1][[1]]]
                   ];
@@ -345,12 +345,12 @@ leftOf[el_,list__] :=
 Clear[rightOf];
 rightOf[el_,neckl[list__]] :=
     Module[ {loc},
-        If[ (loc = Position[list,el,1])==={},
+        If[ (loc = Position[list,el,1]) ~SameQ~ {},
             Throw[Error[{"Element Not In Necklace", el, neckl[list]}]],
             If[ Length[loc = Flatten[loc]]>1,
                 Throw[Error[{"Ambiguous element in Necklace", el, neckl[list]}]],
                 loc = loc[[1]];
-                If[ loc===Length[list],
+                If[ loc ~SameQ~ Length[list],
                     list[[1]],
                     list[[loc+1]]
                 ]
@@ -363,18 +363,18 @@ rightOf[el_,list__] :=
         If[ NumberQ[el]&&el<0,
             el = -el
         ];
-        If[ Head[list[[1]]]=!=neckl,
+        If[ Head[list[[1]]] ~UnsameQ~ neckl,
             Throw["Not a Necklace in rightOf"]
         ];
         elCount = Count[list,elCanon,5];
-        If[ elCount==0,
+        If[ elCount === 0,
             elCanon = -elCanon,
             elCount = Count[list,elCanon,5];
         ];
-        If[ elCount==0,
+        If[ elCount === 0,
             Throw[Error["Not Present in rightOf[...,list]",list,el,elCanon]];
         ];
-        nextVal = If[ elCount==1,
+        nextVal = If[ elCount === 1,
                       rightOf[el,Select[list,MemberQ[#[[1]],el]&,1][[1]]],
                       rightOf[-el,Select[list,MemberQ[#[[1]],-el]&,1][[1]]]
                   ];
@@ -393,59 +393,58 @@ externalLegsRightOfALeftOfB[a_,b_,list__] :=
         StylePrint[leftOf[b,list]];
         NestWhileList[(tmp = rightOf[#,list];
                        StylePrint[{#,list,tmp}];
-                       tmp)&,a,(#=!=leftOf[b,list])&]
+                       tmp)&,a,(# ~UnsameQ~ leftOf[b,list])&]
     ]
 
 setRightOf[el_,neckl[list__]] :=
-    Rest[NestWhileList[rightOf[#,neckl[list]]&,el,(#=!=leftOf[el,neckl[list]])&]]
+    Rest[NestWhileList[rightOf[#,neckl[list]]&,el,(# ~UnsameQ~ leftOf[el,neckl[list]])&]]
 
 setLeftOf[el_,neckl[list__]] :=
-    Rest[NestWhileList[leftOf[#,neckl[list]]&,el,(#=!=rightOf[el,neckl[list]])&]]
+    Rest[NestWhileList[leftOf[#,neckl[list]]&,el,(# ~UnsameQ~ rightOf[el,neckl[list]])&]]
 
 inSetRightOfALeftOfB[elA_,elB_,neckl[list__]] :=
-    If[ elA===elB,
+    If[ elA ~SameQ~ elB,
         NestWhileList[rightOf[#,neckl[list]]&,
-        elA,(#=!=leftOf[elA,neckl[list]])&],
+        elA,(# ~UnsameQ~ leftOf[elA,neckl[list]])&],
         NestWhileList[rightOf[#,neckl[list]]&,
-        elA,(#=!=elB)&]
+        elA,(# ~UnsameQ~ elB)&]
     ]
 
 exSetRightOfALeftOfB[elA_,elB_,neckl[list__]] :=
-    If[ rightOf[elA,neckl[list]]===elB,
+    If[ rightOf[elA,neckl[list]] ~SameQ~ elB,
         {},
         NestWhileList[rightOf[#,neckl[list]]&,
-        rightOf[elA,neckl[list]],(#=!=leftOf[elB,neckl[list]])&]
+        rightOf[elA,neckl[list]],(# ~UnsameQ~ leftOf[elB,neckl[list]])&]
     ]
 
 getConnectingEdges[list__] :=
     Module[ {l = Flatten[list/.neckl[a___]:>List[a]]},
-        Select[l,Count[l,#,\[Infinity]]==2&]
+        Select[l,Count[l,#,\[Infinity]] ~SameQ~ 2&]
     ]
 
 getAConnectingEdge[list__] :=
     Module[ {l = Flatten[list/.neckl[a___]:>List[a],2]},
-        Select[l,Count[l,#,\[Infinity]]==2&,1]
+        Select[l,Count[l,#,\[Infinity]] ~SameQ~ 2&,1]
     ]
 
-getNonConnectingEdges[list__] :=
+(* getNonConnectingEdges[list__] :=
     Module[ {l = Flatten[list/.neckl[a___]:>List[a],2]},
-        Select[l,Count[l,#,\[Infinity]]+Count[l,-#,\[Infinity]]==1&]
-    ]
+        Select[l,Count[l,#,\[Infinity]]+Count[l,-#,\[Infinity]] \[Equal] 1&]
+    ] *)
 
 getNonConnectingEdges[list__] :=
     Module[ {a,l = Flatten[list/.neckl[a___]:>List[a],2]},
-(* Select[l,Count[l,#,\[Infinity]]+Count[l,-#,\[Infinity]]==1&]*)
         Select[l,(a = #/.-b_:>b;
-                  Count[l/.-b_:>b,a,\[Infinity]]+Count[l/.-b_:>b,-a,\[Infinity]]==1)&]
+                  (Count[l/.-b_:>b,a,\[Infinity]]+Count[l/.-b_:>b,-a,\[Infinity]]) ~SameQ~ 1)&]
     ]
 
 concatenateNecklaces[neckl[listA__],neckl[listB__],ell_] :=
     Module[ {locA,locB,ret,el},
-        el = If[ (Head[ell]===Times && ell[[1]]===-1)||(NumberQ[ell]&&ell<0),
+        el = If[ (Head[ell] ~SameQ~ Times && ell[[1]] ~SameQ~ -1)||(NumberQ[ell]&&ell<0),
                  -ell,
                  ell
              ];
-        If[ listA===listB,
+        If[ listA ~SameQ~ listB,
             ret = neckl[listA/.{-el:>merged[-el,el],el:>merged[el,-el]}],
             locA = Flatten[Position[listA,el]];
             locB = Flatten[Position[listB,el]];
@@ -455,10 +454,10 @@ concatenateNecklaces[neckl[listA__],neckl[listB__],ell_] :=
             If[ Length[locB]>1,
                 locB = Flatten[Position[listB,-el]]
             ];
-            If[ Length[locA]=!=1,
+            If[ Length[locA] ~UnsameQ~ 1,
                 Throw[Error[{"Bad element in A",el,neckl[listA]}]]
             ];
-            If[ Length[locB]=!=1,
+            If[ Length[locB] ~UnsameQ~ 1,
                 Throw[Error[{"Bad element in B",el,neckl[listB]}]]
             ];
             locA = locA[[1]];
@@ -474,11 +473,11 @@ concatenateNecklaces[neckl[listA__],neckl[listB__],ell_] :=
 
 concatenateNecklaces[neckl[listA__],neckl[listB__],ell_] :=
     Module[ {locA,locB,ret,el,StylePrint},
-        el = If[ (Head[ell]===Times && ell[[1]]===-1)||(NumberQ[ell]&&ell<0),
+        el = If[ (Head[ell] ~SameQ~ Times && ell[[1]] ~SameQ~ -1)||(NumberQ[ell]&&ell<0),
                  -ell,
                  ell
              ];
-        If[ listA===listB,
+        If[ listA ~SameQ~ listB,
             neckl[listA/.{el:>merged[el,-el],-el:>merged[-el,el]}],
             locA = Flatten[Position[listA,el]];
             locB = Flatten[Position[listB,el]];
@@ -488,10 +487,10 @@ concatenateNecklaces[neckl[listA__],neckl[listB__],ell_] :=
             If[ Length[locB]>1,
                 locB = Flatten[Position[listB,-el]]
             ];
-            If[ Length[locA]=!=1,
+            If[ Length[locA] ~UnsameQ~ 1,
                 Throw[Error[{"Bad element in A",el,neckl[listA]}]]
             ];
-            If[ Length[locB]=!=1,
+            If[ Length[locB] ~UnsameQ~ 1,
                 Throw[Error[{"Bad element in B",el,neckl[listB]}]]
             ];
             locA = locA[[1]];
@@ -509,7 +508,7 @@ concatenateNecklaces[neckl[listA__],neckl[listB__],ell_] :=
 mergeEdge[necklaces__,nextEdge_] :=
     Module[ {newForm = necklaces,concatForm,locs,StylePrint},
         locs = Map[First,Position[newForm,nextEdge]];
-        If[ Length[locs]=!=2,
+        If[ Length[locs] ~UnsameQ~ 2,
             Throw[Error["tried to concatenate a bad edge",
             newForm,nextEdge]]
         ];
@@ -525,7 +524,7 @@ mergeEdge[necklaces__,nextEdge_] :=
 
 concatenateNecklaces[necklaces__] :=
     Module[ {newForm = necklaces,nextEdge},
-        While[(nextEdge = getAConnectingEdge[newForm])=!={},
+        While[(nextEdge = getAConnectingEdge[newForm]) ~UnsameQ~ {},
         newForm = mergeEdge[newForm,nextEdge[[1]]];
 ];
         If[ Length[newForm]>1,
@@ -589,7 +588,7 @@ Clear[refineEdges];
 refineEdges[edges__,necklaces__] :=
     Module[ {gpf = graphPlotForm[vertexFormGraph[necklaces]],revHash,revSame},
         revSame[a_,b_] :=
-            revHash[a/.merged[c_,d_]:>d]===revHash[b/.merged[c_,d_]:>d];
+            revHash[a/.merged[c_,d_]:>d] ~SameQ~ revHash[b/.merged[c_,d_]:>d];
         Map[(revHash[#[[2]]] = Sort[List@@#[[1]]])&,gpf];
         Union[edges,SameTest->revSame]
     ]
@@ -674,9 +673,12 @@ refreshGRAPHRULES :=
      graphAlgRules[g_] :=
          graphAlgRules[g,{}];
      graphAlgRules[g_,hold_] :=
-         graphAlgRules[g,hold] = Module[ {rules = (Rule@@#&/@(List@@ Reduce[g/. vertexFormGraph[necklaces_]:> necklaces/.neckl[a__]:>Plus@@a==0, Complement[Union[Flatten[Reap[g/.in[a_]:>Sow[in[a]]][[2]]]],hold],Backsubstitution->True]))},
-                                     Select[rules,Head[#[[1]]]===in&]/. Flatten[Map[{#,-#[[1]]->-#[[2]]}&,(Reverse/@
-                                     Select[rules,Head[#[[1]]]=!=in&])]]
+         graphAlgRules[g,hold] = Module[ {rules = (Rule@@#&/@(List@@ Reduce[g/. 
+                         vertexFormGraph[necklaces_]:> necklaces/.neckl[a__]:>Plus@@a==0, 
+                         Complement[Union[Flatten[Reap[g/.in[a_]:>Sow[in[a]]][[2]]]],hold], 
+                         Backsubstitution->True]))},
+                                     Select[rules,Head[#[[1]]] ~SameQ~ in&]/. Flatten[Map[{#,-#[[1]]->-#[[2]]}&,(Reverse/@
+                                     Select[rules,Head[#[[1]]] ~UnsameQ~ in&])]]
                                  ];)
 refreshGRAPHRULES
 
@@ -684,11 +686,11 @@ graphDenomProd[graph_] :=
     1/getGraphDenom[stripPriveledge[graph]]
 
 graphDenomProd[graph_,hold_] :=
-    (Times@@Map[uLsq[Flatten[{# /.Plus:>List}]]&,Select[#[[2]]&/@graphPlotForm[graph],Head[#]===in&]/.graphAlgRules[graph,hold]])^(-1)
+    (Times@@Map[uLsq[Flatten[{# /.Plus:>List}]]&,Select[#[[2]]&/@graphPlotForm[graph],Head[#] ~SameQ~ in&]/.graphAlgRules[graph,hold]])^(-1)
 
 getGraphDenom[graph_] :=
     (Times@@Map[uLsq[Flatten[{# /.Plus:>List}]]&,
-    Select[#[[2]]&/@graphPlotForm[graph],Head[#]===in&]/.graphAlgRules[graph]])
+    Select[#[[2]]&/@graphPlotForm[graph],Head[#] ~SameQ~ in&]/.graphAlgRules[graph]])
 
 
 
@@ -810,8 +812,8 @@ graphPlotForm[vertexFormGraph[necklaces_]] :=
     Module[ {tmp},
         Flatten[{Table[
         Map[ 
-        If[ Head[#]=!=Times&&(
-        tmp = Position[necklaces,-#])=!={},
+        If[ Head[#] ~UnsameQ~ Times&&(
+        tmp = Position[necklaces,-#]) ~UnsameQ~ {},
             Ray[neckl1,necklaces[[tmp[[1,1]]]],#],
             {}
         ]&,neckl1[[1]] ],{neckl1,necklaces}],
@@ -831,13 +833,13 @@ internalOneLoopTriangleQ[vertexFormGraph[necklaces__]] :=
 tadpoleQ[g_] :=
     Module[ {
     gpf = graphPlotForm[g]},
-        Length[gpf]=!=Length[Select[gpf,#[[1]][[1]]=!=#[[1]][[2]]&]]
+        Length[gpf] ~UnsameQ~ Length[Select[gpf,#[[1]][[1]] ~UnsameQ~ #[[1]][[2]]&]]
     ]
 
 internalOneLoopBubbleQ[g_] :=
     Module[ {
     gpf = graphPlotForm[g]},
-        Length[gpf]=!=Length[Union[Map[#[[1]]/.Rule[a_,b_]:>Sort[{a,b}]&,gpf]]]
+        Length[gpf] ~UnsameQ~ Length[Union[Map[#[[1]]/.Rule[a_,b_]:>Sort[{a,b}]&,gpf]]]
     ]
 
 dressedGraphPlotForm[g_] :=
@@ -888,19 +890,17 @@ isIsomorphic[graphA_, graphB_] :=
     IsomorphicGraphQ[mathematicaGraph[graphA], mathematicaGraph[graphB]]
 
 isIsomorphic[graphA_, graphB_] :=
-    graphHashCode[graphA] === graphHashCode[graphB]
+    graphHashCode[graphA]  ~SameQ~  graphHashCode[graphB]
 
 isomorphicVertexRule[graphA_,graphB_] :=
     Module[ {rule = FindGraphIsomorphism[mathematicaGraph[graphA],
     mathematicaGraph[graphB],1],vC = VertexCount[mathematicaGraph[graphA]]},
-(* If[Length[Normal[rule]]=!=vC, Throw[{"SERIOUS ISOMORPHISM BUG!!!!",Length[Normal[rule]],vC,Normal[rule],Length[rule]}]];*)
         Normal[First[rule]]
     ]
     
 isomorphicVertexRulesAll[graphA_,graphB_] :=
     Module[ {rule = FindGraphIsomorphism[mathematicaGraph[graphA],
-    mathematicaGraph[graphB],All],vC = VertexCount[mathematicaGraph[graphA]]}, (* If[Length[Normal[#]]=!= vC,
-     Throw[{"SERIOUS ISOMORPHISM BUG!!!!",Length[Normal[#]],vC,Normal[#],Length[#]}]]&/@rule; *)
+    mathematicaGraph[graphB],All],vC = VertexCount[mathematicaGraph[graphA]]}, 
         Normal[#]&/@rule
     ]
 
@@ -966,7 +966,7 @@ getAllGravNumerators[graph_, graphList__, dressingStorage_] :=
     Module[ {myIsoRule,
     myIsoRules,
     myGraph = Select[graphList, isIsomorphic[#1, graph] & ]},
-        If[ Length[myGraph] === 0,
+        If[ Length[myGraph]  ~SameQ~  0,
             Return[NoDressing[graph]],
             myGraph = First[myGraph];
             myIsoRules = isomorphicEdgeRulesAll[myGraph, graph];
@@ -1020,7 +1020,10 @@ doCubicGravDressedCut[cut_, gravDressing_, gravGraphs_] :=
     ]
 
 
-canonNecklOrderRules = neckl[a__]:>neckl[ Select[Map[rotateList[a,#]&,Range[Length[a]]],(#[[1]]==Sort[a][[1]])&][[1]]];
+canonNecklOrderRules = neckl[a__]:>neckl[ 
+    Select[
+       Map[rotateList[a,#]&, Range[Length[a]] ],
+       (#[[1]] ~SameQ~ Sort[a][[1]] )&][[1]]];
 
 getSig[graph_] :=
     (graph/.neckl:>Signature)/.vertexFormGraph[a__]:>Times@@a
@@ -1035,7 +1038,7 @@ getDressing[graph_,graphList__,dressingStorage_] :=
     Module[ {
     myIsoRule,
     myGraph = Select[graphList,isIsomorphic[#,graph]&]},
-        If[ Length[myGraph]===0,
+        If[ Length[myGraph] ~SameQ~ 0,
             Return[NoDressing[graph]],
             myGraph = First[myGraph];
             myIsoRule = isomorphicEdgeRule[myGraph,graph];
@@ -1047,7 +1050,7 @@ getDressing[graph_,graphList__,dressingStorage_] :=
 getDressing[graph_, graphList__, dressingStorage_] :=
     Module[ {myIsoRule, myGraph = Select[graphList, 
             isIsomorphic[#1, graph] & ]},
-        If[ Length[myGraph] === 0,
+        If[ Length[myGraph]  ~SameQ~  0,
             Return[NoDressing[graph]],
             myGraph = First[myGraph];
             myIsoRule = isomorphicEdgeRule[myGraph, graph];
@@ -1064,7 +1067,7 @@ getNumerator[graph_,graphList__,dressingStorage_] :=
 getAllNumerators[graph_, graphList__, dressingStorage_] :=
     Module[ {myIsoRule, myIsoRules, myGraph = Select[graphList, 
         isIsomorphic[#1, graph] & ]},
-        If[ Length[myGraph] === 0,
+        If[ Length[myGraph]  ~SameQ~  0,
             Return[NoDressing[graph]],
             myGraph = First[myGraph];
             myIsoRules = isomorphicEdgeRulesAll[myGraph, graph];
@@ -1086,7 +1089,7 @@ getDressingLabelForm[graph_,graphList__,dressingStorage_] :=
     Module[ {
     myIsoRule,myLabel = Select[graphList,isIsomorphic[#["vertexForm"],graph]&,1],
     myGraph},
-        If[ Length[myLabel]===0,
+        If[ Length[myLabel] ~SameQ~ 0,
             Return[NoDressing[graph]],
             myLabel = First[myLabel];
             myGraph = myLabel["vertexForm"];
@@ -1099,7 +1102,9 @@ getDressingLabelForm[graph_,graphList__,dressingStorage_] :=
 Clear[getMyMomHash];
 getMyMomHash[myTree_] :=
     getMyMomHash[myTree] = Module[ {myRule,legs,myMomHash},
-                               myRule = Rule@@#&/@List@@Reduce[Join[myTree/.Atree[a__]:>Plus@@a==0,{leg[k, 1]+leg[k, 2]+leg[k, 3]+leg[k, 4]==0}]];
+                               myRule = Rule@@#&/@List@@Reduce[
+                                 Join[myTree/.Atree[a__]:>Plus@@a == 0,
+                                 {leg[k, 1]+leg[k, 2]+leg[k, 3]+leg[k, 4] == 0}]];
                                legs = Flatten[myTree/.Atree[a__]:>a];
                                Clear[myMomHash];
                                (myMomHash[#/.myRule] = #;
@@ -1121,11 +1126,11 @@ getMyMomHash[myTree_] :=
 
 clarifyTrees[expr_,myTree_] :=
     Module[ {myRule,legs,myMomHash},
-        myRule = Rule@@#&/@List@@Reduce[Join[myTree/.Atree[a__]:>Plus@@a==0,{leg[k, 1]+leg[k, 2]+leg[k, 3]+leg[k, 4]==0}]];
+        myRule = Rule@@#&/@List@@Reduce[Join[myTree/.Atree[a__]:>Plus@@a == 0,{leg[k, 1]+leg[k, 2]+leg[k, 3]+leg[k, 4]==0}]];
         legs = Flatten[myTree/.Atree[a__]:>a];
         Clear[myMomHash];
         myMomHash = getMyMomHash[myTree];
-        expr/.uLsq[b__]:>If[ (Head[tmp = myMomHash[Plus@@b/.myRule]]=!=myMomHash)&&Length[tmp]<=Length[b],
+        expr/.uLsq[b__]:>If[ (Head[tmp = myMomHash[Plus@@b/.myRule]] ~UnsameQ~ myMomHash)&&Length[tmp]<=Length[b],
                              uLsq[Flatten[{tmp/.Plus:>List}]],
                              uLsq[b]
                          ]
@@ -1161,8 +1166,8 @@ getGoodUniqLegs[treeList_] :=
               Subscript[a_,b_] :=
                   a[b];
               legs = Union[Flatten[myTrees/.Atree[a__]:>a /.-a_:>a]];
-              loops = Select[legs,#[[1]]===l&];
-              ks = Select[legs,#[[1]]===k&];
+              loops = Select[legs,#[[1]] ~SameQ~ l&];
+              ks = Select[legs,#[[1]] ~SameQ~ k&];
               doo = Union[Flatten[Outer[ulp[#1,#2]&,legs,legs]/.ulp[a_,a_]:>{}]];
               doo = Join[Complement[doo,free],
               Complement[{ulp[Subscript[k, 2],Subscript[k, 3]],
@@ -1181,31 +1186,31 @@ consistentGraphToTrees[vertexFormGraph[necklaces__]] :=
 
 Clear[corruptGraph];
 corruptGraph[graph_] :=
-    corruptGraph[graph] = If[ Head[graphHashCode[graph]]===Graph,
+    corruptGraph[graph] = If[ Head[graphHashCode[graph]] ~SameQ~ Graph,
                               graph,
                               Module[ {goodSet,cG,StylePrint},
-                                  cG = minStripPriveledge[If[ Head[graphHashCode[graph]]===Graph,
+                                  cG = minStripPriveledge[If[ Head[graphHashCode[graph]] ~SameQ~ Graph,
                                                               graph,
                                                               Module[ {intLegs = getIntLegs[graph],n = 0},
                                                                   goodSet = {};
-                                                                  While[goodSet==={}&&n<24,
+                                                                  While[goodSet ~SameQ~ {}&&n<24,
                                                                      n++;
                                                                      StylePrint["Trying "<>ToString[n]];
                                                                      goodSet = Select[Subsets[intLegs,{n}],
                                                                         Head[graphHashCode[priveledgeSomeLegs[graph,
-                                                                        Flatten[{#}]]]]===Graph&,1];
+                                                                        Flatten[{#}]]]] ~SameQ~ Graph&,1];
                                                                      StylePrint[{"Got ", goodSet}];  
                                                                    ];
                                                                   If[ n>=24,
                                                                       n = 0;
                                                                       intLegs = Sort[getIntLegs[graph]];
                                                                       goodSet = {};
-                                                                      While[goodSet==={}&&n<24,
+                                                                      While[goodSet ~SameQ~ {}&&n<24,
                                                                        n++;
                                                                        StylePrint["Trying "<>ToString[n]];
                                                                        goodSet = Select[Subsets[intLegs,{n}],
                                                                           Head[graphHashCode[priveledgeSomeLegs[graph,
-                                                                          Flatten[{#}]]]]===Graph&,1];
+                                                                          Flatten[{#}]]]] ~SameQ~ Graph&,1];
                                                                        StylePrint[{"Got ", goodSet}];  
                                                                       ];
                                                                   ];
@@ -1216,7 +1221,7 @@ corruptGraph[graph_] :=
                                                               ]
                                                           ]
                                       ];
-                                  If[ Head[graphHashCode[cG]]=!=Graph,
+                                  If[ Head[graphHashCode[cG]] ~UnsameQ~ Graph,
                                       Print[{"Had to box oldschool!  minStripPriveledge insufficient for crazy graph.",
                                       stripPriveledge[graph]}];
                                       priveledgeSomeLegs[graph,goodSet[[1]]],
@@ -1226,7 +1231,7 @@ corruptGraph[graph_] :=
                           ]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*More plot code*)
 
 
@@ -1239,11 +1244,11 @@ doOrderedPlot[expr_, myExtLegs_, options___] := Module[{},
          Sin[(#2[[1]] - 3/2) 2 \[Pi]/Length[myExtLegs]]}] &, myExtLegs],
    MultiedgeStyle -> 50, 
    EdgeRenderingFunction -> (Flatten[{If[
-         Head[#3 /. -a_ :> a] === l, {Dashed, Red, Arrowheads[{{.05, .75}}], 
+         Head[#3 /. -a_ :> a]  ~SameQ~  l, {Dashed, Red, Arrowheads[{{.05, .75}}], 
           Thick, Arrow[#1], 
           Text[#3, Mean[#1], Background -> Opacity[.6, White]]},
          If[
-          Head[#3 /. -a_ :> a] === 
+          Head[#3 /. -a_ :> a]  ~SameQ~  
            highlight, {RGBColor[0.074189364461738, 0.5290608072022583, 
             0.0075379568169680325], Thick, Arrow[#1], 
            Text[#3 /. highlight[a_] :> a, Mean[#1], 
@@ -1270,11 +1275,11 @@ doOrderedPlotRand[expr_, myExtLegs_, options___] :=
    doMomentaPlot[expr, VertexCoordinateRules -> firstRules,
     MultiedgeStyle -> 50, 
     EdgeRenderingFunction -> (Flatten[{If[
-          Head[#3 /. -a_ :> a] === l, {Dashed, Red, Arrowheads[{{.05, .75}}], 
+          Head[#3 /. -a_ :> a]  ~SameQ~  l, {Dashed, Red, Arrowheads[{{.05, .75}}], 
            Thick, Arrow[#1], 
            Text[#3, Mean[#1], Background -> Opacity[.6, White]]},
           If[
-           Head[#3 /. -a_ :> a] === 
+           Head[#3 /. -a_ :> a]  ~SameQ~  
             highlight, {RGBColor[0.074189364461738, 0.5290608072022583, 
              0.0075379568169680325], Thick, Arrow[#1], 
             
@@ -1314,7 +1319,7 @@ cutGraph3D[graph_] :=
  Graph3D[HighlightGraph[
    mathematicaGraph[
     graph], (First /@ 
-      Select[graphPlotForm[graph], (#[[-1]] // Head) === l &]) /. 
+      Select[graphPlotForm[graph], (#[[-1]] // Head)  ~SameQ~  l &]) /. 
     Rule :> UndirectedEdge]]
  
 stagePlot[sGraph_, order_] := 
@@ -1326,7 +1331,7 @@ stagePlot[sGraph_, order_] :=
           (dasRed[#] = True) & /@ myLegs;
    StylePrint[{#, dasRed[#]}] & /@ myLegs;
    Show[GraphicsRow[{doOrderedPlot[sGraph, k /@ Range[4], 
-       EdgeRenderingFunction -> (({If[True === dasRed[#3], {Red, Arrow[#]}, 
+       EdgeRenderingFunction -> (({If[True  ~SameQ~  dasRed[#3], {Red, Arrow[#]}, 
              Arrow[#]], 
             Inset[#3, Mean[#1], Automatic, Automatic, #[[1]] - #[[2]], 
              Background -> White]}) &), PlotLabel -> x], 
@@ -1341,18 +1346,20 @@ canonVertexList[
       neckl[rotateList[a, 
         Position[a, Sort[a] // First] // Flatten // First]]) & /@ graph
 
+
 getOffShellDotsBetter[graph_] := 
     Module[{trees = consistentGraphToTrees[graph], ext, 
         int = getIntLegs[graph], legs}, 
       ext = getExtLegsFromTrees[trees]; 
        legs = Join[int, ext]; ToRules[
-         (Reduce[daRInp = Flatten[#1], daList = 
+         (Reduce[ (daRInp = Flatten[#1]), 
+                  (daList = 
                   Sort[Union[Flatten[Outer[ulp[#1, #2] & , 
                            Join[ext[[{-1}]], int], Join[ext, int]]]], 
                      OrderedQ[(Abs[#1] /. {k[a_] :> a, l[b_] :> 
                                     2^b, ulp[a_, b_] :> a*b} & ) /@ 
-                           {#1, #2}] & ] // Reverse, Backsubstitution -> 
-                  True] & )[Join[(ulp[#1, #1] == 0 & ) /@ ext, 
+                           {#1, #2}] & ] // Reverse ), 
+                   Backsubstitution -> True] & )[Join[(ulp[#1, #1] == 0 & ) /@ ext, 
              Append[trees, Atree[ext]] /. Atree[a__] :> 
                  (ulp[#1, Plus @@ a] == 0 & ) /@ legs]]]]
 
@@ -1370,7 +1377,7 @@ uniqLegs=Select[getMyUniqLegs[gr],(#/.Append[lMaps,a_:>2])>=1&];
 StylePrint[uniqLegs];
 uniqDots=Outer[ulp[#1,#2]&, uniqLegs,uniqLegs]/.getIndepRules[{Atree[k/@Range[LEGS]]}]/.ulp[k[a_],k[a_]]:>{}/.ulp[a_,b_]:>Sow[ulp[a,b]]//Reap//Last//Flatten//Union;
 uniqDots=
-Select[uniqDots,(me=#; And@@((0==D[me/.ulp[a_,b_]:> a*b,{#[[1]],1+#[[2]]}])&/@lMaps))&];
+Select[uniqDots,(me=#; And@@((0 ~SameQ~ (D[me/.ulp[a_,b_]:> a*b,{#[[1]],1+#[[2]]}]))&/@lMaps))&];
 StylePrint[uniqDots];
 uniqPol=Map[\[Epsilon][#]&,eLegs];
 singlePol=Outer[ulp[#1,#2]&,uniqLegs,uniqPol]/.ulp[First[uniqLegs],Last[uniqPol]]:>{}/.
@@ -1379,13 +1386,14 @@ doublePol=
 Outer[ulp[#1,#2]&,uniqPol,uniqPol]/.ulp[a_,a_]:>{}//Flatten//Union;
 maxPowerCount=2*(LEGS+LOOPS-1)-2;
 curGuys=Flatten[{singlePol,doublePol}];
-cG=curGuys=If[Length[lMaps]>0,Select[curGuys,(me=#; And@@((0==D[me/.ulp[a_,b_]:> a*b,{#[[1]],1+#[[2]]}])&/@lMaps))&],curGuys];
+cG=curGuys=If[Length[lMaps]>0,Select[curGuys,(me=#; And@@((0 ~SameQ~  
+  (D[me/.ulp[a_,b_]:> a*b,{#[[1]],1+#[[2]]}]))&/@lMaps))&],curGuys];
 While[maxPowerCount>0,
 maxPowerCount-=2;
 curGuys=Table[\[Epsilon]Used=expr/.\[Epsilon][a_]:>Sow[\[Epsilon][a]]//Reap//Last//Flatten//Union;
 lUsed=((Rule@@#)&/@(expr/.l[a_]:>Sow[l[a]]//Reap//Last//Flatten//Tally));
 lUR=Map[#[[1]]->(#[[2]]-(#[[1]]/.lUsed/.l[a_]:>0))&,lMaps];
-nextBatch=If[(Length[uniqPol]-Length[\[Epsilon]Used])==0,
+nextBatch=If[(Length[uniqPol]-Length[\[Epsilon]Used]) ~SameQ~ 0,
 uniqDots,
 If[(Length[uniqPol]-Length[\[Epsilon]Used])-1<=maxPowerCount,
 (* i.e. I can afford one mistake :-) *)
@@ -1394,7 +1402,7 @@ doublePol]];
 nextBatch=(nextBatch/.(ulp[_,#]:>{}&/@\[Epsilon]Used))//Flatten//Union;
 nextBatch=Select[nextBatch, ((#/.ulp[a_,b_]:>a/.lUR/.a_[b_]:>10)>0&&(#/.ulp[a_,b_]:>b/.lUR/.a_[b_]:>10)>0)&];
 
-If[nextBatch==={},{},
+If[nextBatch ~SameQ~ {},{},
 Map[expr*#&,nextBatch]],
 {expr,curGuys}]//Flatten//Union;
 ];
@@ -1420,13 +1428,13 @@ curGuys=Flatten[{singlePol,doublePol}];
 While[maxPowerCount>0,
 maxPowerCount-=2;
 curGuys=Table[\[Epsilon]Used=expr/.\[Epsilon][a_]:>Sow[\[Epsilon][a]]//Reap//Last//Flatten//Union;
-nextBatch=If[(Length[uniqPol]-Length[\[Epsilon]Used])==0,
+nextBatch=If[(Length[uniqPol]-Length[\[Epsilon]Used]) ~SameQ~ 0,
 uniqDots,
 If[(Length[uniqPol]-Length[\[Epsilon]Used])-1<=maxPowerCount,
 (* i.e. I can afford one mistake :-) *)
 {singlePol,doublePol},
 doublePol]];
-nextBatch=(nextBatch/.(ulp[_,#]:>{}&/@\[Epsilon]Used))//Flatten//Union;If[nextBatch==={},{},
+nextBatch=(nextBatch/.(ulp[_,#]:>{}&/@\[Epsilon]Used))//Flatten//Union;If[nextBatch ~SameQ~ {},{},
 Map[expr*#&,nextBatch]],
 {expr,curGuys}]//Flatten//Union;
 ];
@@ -1464,7 +1472,7 @@ newColorSimplify[expr_] :=
     tr[a[4],a[3]]->tr[a[3],a[4]],tr[a[4],a[2]]->tr[a[2],a[4]],tr[a[3],a[2]]->tr[a[2],a[3]]}/.tr[a___]:>ctr[a]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Momenta and spinor code*)
 
 
@@ -1593,7 +1601,7 @@ generateNullMomenta[l_, prec_,D_] :=
 generateMasslessDecay[massiveMom_, l__, prec_,D_] :=
     Module[ {length = Length[l], Kvecs, K, \[Rho], l1, l2, StylePrint, momenta, allVals},
         StylePrint[l];
-        Kvecs = If[ length == 2,
+        Kvecs = If[ length ~SameQ~ 2,
                     {0*massiveMom},
                     (getRandomNullVector[prec,D] & ) /@ Range[length - 2]
                 ];
@@ -1604,7 +1612,7 @@ generateMasslessDecay[massiveMom_, l__, prec_,D_] :=
         StylePrint[Lsq[K]];
         l1 = (-(Lsq[K]/(2*Lorentz[\[Rho], K])))*\[Rho];
         l2 = -K - l1;
-        allVals = If[ length === 2,
+        allVals = If[ length  ~SameQ~  2,
                       {l1, l2},
                       Join[Kvecs, {l1, l2}]
                   ];
@@ -1627,18 +1635,18 @@ buildMomenta[mtrees__,D_] :=
           StylePrint[{"Known!", myKnown}];
           myDiscover = Complement[myTree, myKnown];
           StylePrint[{"Discover!", myDiscover}];
-          If[ Length[myKnown] != Length[myTree] && Length[myDiscover] > 1,
+          If[ Length[myKnown] ~UnsameQ~ Length[myTree] && Length[myDiscover] > 1,
               myNextMom = generateMasslessDecay[Plus @@ (mom[#1] & ) /@ myKnown, myDiscover, 850,D];
               StylePrint[N[myNextMom /@ myDiscover]];
               ((mom[#1] = myNextMom[#1];
                 mom[-#1] = -myNextMom[#1]; ) & ) /@ Complement[myTree, myKnown];
               known = Join[known, myDiscover, -myDiscover];,
               Print[Style[{"Warning!", myTree, myKnown, Lsq[bob = Plus @@ (mom[#1] & ) /@ myKnown]}]];
-              If[ Chop[Lsq[bob]] != 0 && Length[myDiscover] == 1,
+              If[ Chop[Lsq[bob]]  ~UnsameQ~  0 && Length[myDiscover] ~SameQ~ 1,
                   Print[Style["Warning Dude"]];
                   Throw["Bad Sort!"];
               ];
-              If[ Chop[Lsq[bob]] == 0 && Length[myDiscover] == 1,
+              If[ Chop[Lsq[bob]] ~SameQ~ 0 && Length[myDiscover] ~SameQ~ 1,
                   mom[myDiscover[[1]]] = -bob;
                   mom[-myDiscover[[1]]] = bob;
                   known = Join[known, myDiscover, -myDiscover];
@@ -1653,7 +1661,7 @@ buildAllMomentaD[mtrees_,D_] :=
         good = Select[Select[(Catch[buildMomenta[#1,D]] & ) /@ Permutations[trees],  !StringQ[#1] & ], 
            (rmom = #1;
             Chop[trees /. Atree[a__] :> Plus @@ rmom /@ a] == (trees /. Atree[a__] :> Table[0,{D}])) & ];
-        If[ Length[good] === 0,
+        If[ Length[good]  ~SameQ~  0,
             Throw["bad Momenta"]
         ];
         good[[1]]
@@ -1687,7 +1695,7 @@ buildAllMomenta[mtrees_,n__] :=
         (Catch[buildMomenta[#1]] & ) /@ Permutations[trees],  (!StringQ[#1]) & ,1], 
            (rmom = #1;
             Chop[trees /. Atree[a__] :> Plus @@ rmom /@ a] == (trees /. Atree[a__] :> {0, 0, 0, 0})) & ];
-        If[ Length[good] === 0,
+        If[ Length[good]  ~SameQ~  0,
             Throw["bad Momenta"]
         ];
         good[[1]]
@@ -1707,18 +1715,18 @@ buildMomenta[mtrees__] :=
           StylePrint[{"Known!", myKnown}];
           myDiscover = Complement[myTree, myKnown];
           StylePrint[{"Discover!", myDiscover}];
-          If[ Length[myKnown] != Length[myTree] && Length[myDiscover] > 1,
+          If[ Length[myKnown] ~UnsameQ~ Length[myTree] && Length[myDiscover] > 1,
               myNextMom = generateMasslessDecay[Plus @@ (mom[#1] & ) /@ myKnown, myDiscover, 850];
               StylePrint[N[myNextMom /@ myDiscover]];
               ((mom[#1] = myNextMom[#1];
                 mom[-#1] = -myNextMom[#1]; ) & ) /@ Complement[myTree, myKnown];
               known = Join[known, myDiscover, -myDiscover];,
               Print[Style[{"Warning!", myTree, myKnown, Lsq[bob = Plus @@ (mom[#1] & ) /@ myKnown]}]];
-              If[ Chop[Lsq[bob]] != 0 && Length[myDiscover] == 1,
+              If[ Chop[Lsq[bob]] ~UnsameQ~ 0 && Length[myDiscover] ~SameQ~ 1,
                   Print[Style["Warning Dude"]];
                   Throw["Bad Sort!"];
               ];
-              If[ Chop[Lsq[bob]] == 0 && Length[myDiscover] == 1,
+              If[ Chop[Lsq[bob]] ~SameQ~ 0 && Length[myDiscover] ~SameQ~ 1,
                   mom[myDiscover[[1]]] = -bob;
                   mom[-myDiscover[[1]]] = bob;
                   known = Join[known, myDiscover, -myDiscover];
@@ -1734,7 +1742,7 @@ generateMassiveDecay[mSq_,l__,prec_] :=
         Kvecs = (getRandomMassVector[prec] & ) /@ Range[length - 2];
         StylePrint[N[Kvecs]];
         K = Plus @@ Kvecs;
-        \[Rho] = If[ mSq==0,
+        \[Rho] = If[ mSq ~SameQ~ 0,
                      getRandomNullVector[prec],
                      b = getRandomMassVector[prec];
                      b*Sqrt[mSq]/Sqrt[Lsq[b]]
@@ -1752,7 +1760,7 @@ generateMassiveDecay[mSq_,l__,prec_] :=
 generateMasslessDecay[massiveMom_,l__,prec_] :=
     Module[ {length = Length[l], Kvecs, K, \[Rho], l1, l2,StylePrint, momenta,allVals},
         StylePrint[l];
-        Kvecs = If[ length==2,
+        Kvecs = If[ length~SameQ~ 2,
                     {0*massiveMom},
                     (getRandomNullVector[prec] & ) /@ Range[length - 2]
                 ];
@@ -1763,7 +1771,7 @@ generateMasslessDecay[massiveMom_,l__,prec_] :=
         StylePrint[Lsq[K]];
         l1 = (-(Lsq[K]/(2*Lorentz[\[Rho], K])))*\[Rho];
         l2 = -K - l1;
-        allVals = If[ length===2,
+        allVals = If[ length ~SameQ~ 2,
                       {l1,l2},
                       Join[Kvecs, {l1, l2}]
                   ];
@@ -1790,20 +1798,20 @@ buildAllMomenta[mtrees_,n__] :=
         ({#,Catch[buildMomenta[#1]]} & ) /@ Permutations[trees],  (!StringQ[#1[[2]]]) & ], 
            (rmom = #1[[2]];
             Chop[trees /. Atree[a__] :> Plus @@ rmom /@ a] == (trees /. Atree[a__] :> {0, 0, 0, 0})) &,1 ];
-        If[ Length[good] === 0,
+        If[ Length[good]  ~SameQ~  0,
             Throw["bad Momenta"]
         ];
         Table[buildMomenta[good[[1,1]]],{i,1,n}]
     ]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*4D SUSY cuts *)
 
 
 mergeLegsTreeLevel[trees_, a_] :=
     Module[ {bt = Select[trees, Count[#, a /. -b_ :> b, \[Infinity]] > 0 &], gt = a /. -b_ :> b},
-        If[ Length[bt] =!= 2,
+        If[ Length[bt]  ~UnsameQ~  2,
             Throw[{"Bad collapse ", trees, a, bt}]
         ];
         rules = {bt[[2]] -> {},
@@ -1821,15 +1829,15 @@ mergeLegsTreeLevelList[trees_, a__] :=
     ]
 
 getIntLegs[graph_] :=
-    (#[[1]]&/@Select[Tally[ graph[[1]]/.neckl[a__]:>a/.-a_:>a//Flatten],#[[2]]===2&])
+    (#[[1]]&/@Select[Tally[ graph[[1]]/.neckl[a__]:>a/.-a_:>a//Flatten],#[[2]] ~SameQ~ 2&])
 
 getIntLegsFromTrees[trees_] :=
-    (#[[1]]&/@Select[Tally[ trees/.Atree[a__]:>a/.-a_:>a//Flatten],#[[2]]===2&])
+    (#[[1]]&/@Select[Tally[ trees/.Atree[a__]:>a/.-a_:>a//Flatten],#[[2]] ~SameQ~ 2&])
 
 getExtLegsFromTrees[trees_] :=
     (#1[[1]] & ) /@ 
     Select[Tally[Flatten[trees /. Atree[a__] :> a /. 
-    -(a_) :> a]], #1[[2]] === 1 & ]
+    -(a_) :> a]], #1[[2]]  ~SameQ~  1 & ]
 
 
 getKRules[trees_] :=
@@ -1848,12 +1856,12 @@ kkExpress[Atree[legs_],first_, second_] :=
             Position[l,a][[1,1]];
         one = second;
         nnn = first;
-        If[ Intersection[legs,{first,second}]=!=Sort[{first,second}],
+        If[ Intersection[legs,{first,second}] ~UnsameQ~ Sort[{first,second}],
             Throw[notInKK[{first,second,Atree[legs]}]];
         ];
-        If[ (pos[first,legs]-pos[second,legs])===-1,
+        If[ (pos[first,legs]-pos[second,legs]) ~SameQ~ -1,
             Return[Atree[rotateList[legs,pos[first,legs]]]],
-            If[ (pos[first,legs]-pos[second,legs])===1,
+            If[ (pos[first,legs]-pos[second,legs]) ~SameQ~ 1,
                 Return[(-1)^Length[legs] Atree[rotateList[Reverse[legs],pos[first,Reverse[legs]]]]],
                 If[ Position[legs,nnn][[1,1]]<Position[legs,one][[1,1]],
                     legsU = Reverse[legs];
@@ -1864,7 +1872,7 @@ kkExpress[Atree[legs_],first_, second_] :=
                 legsU = rotateList[legsU,Position[legsU,one][[1,1]]];
                 StylePrint[{"rotated: legs U",legsU}];
                 StylePrint[{"conditional eq: ",legsU[[-1]],nnn}];
-                If[ legsU[[-1]]===nnn,
+                If[ legsU[[-1]] ~SameQ~ nnn,
                     Return[ sign * Atree[rotateList[legsU,Length[legsU]]]],
                     StylePrint[{legsU,pos[one,legsU], pos[nnn,legsU]}];
                     \[Alpha] = legsU[[ Range[pos[one,legsU]+1, pos[nnn,legsU]-1]]];
@@ -1873,8 +1881,8 @@ kkExpress[Atree[legs_],first_, second_] :=
                     StylePrint[\[Beta]];
                     StylePrint[sign];
                     sign*Plus@@Table[(-1)^Length[\[Beta]] Atree[Join[{nnn},{one},perm]],
-                    {perm,Select[Permutations[Join[\[Alpha],\[Beta]]],(\[Alpha]=== Flatten[#/.Thread[\[Beta]->Map[{}&,\[Beta]]]] )&&
-                    (\[Beta]=== Flatten[#/.Thread[\[Alpha]->Map[{}&,\[Alpha]]]] )&]}
+                    {perm,Select[Permutations[Join[\[Alpha],\[Beta]]],(\[Alpha] ~SameQ~  Flatten[#/.Thread[\[Beta]->Map[{}&,\[Beta]]]] )&&
+                    (\[Beta] ~SameQ~  Flatten[#/.Thread[\[Alpha]->Map[{}&,\[Alpha]]]] )&]}
                     ]
                 ]
             ]
@@ -1884,7 +1892,7 @@ kkExpress[Atree[legs_],first_, second_] :=
 
 
 bcj\[ScriptCapitalG][i_,j_] :=
-    If[ (i<j)||(j===1)||(j===3),
+    If[ (i<j)||(j ~SameQ~ 1)||(j ~SameQ~ 3),
         uLsq[{i,j}],
         0
     ]
@@ -1894,9 +1902,9 @@ bcj\[ScriptCapitalF][3,\[Sigma]_,1,k_,m_,n_] :=
     Module[ {\[Rho] = Join[{3},\[Sigma],{1}],
     t},
         t[kk_] :=
-            If[ kk===1+m,
+            If[ kk ~SameQ~ 1+m,
                 0,
-                If[ kk===3,
+                If[ kk ~SameQ~ 3,
                     t[5],
                     Position[\[Rho],kk][[1,1]]
                 ]
@@ -1925,7 +1933,7 @@ bcjReorder[Atree[{first_,second_,\[Alpha]___,third_,\[Beta]___}],first_,second_,
         Plus@@Table[ Atree[Join[{1,2,3},\[Sigma] ]/.rule] *
         Product[bcj\[ScriptCapitalF][3,\[Sigma],1,k,m,n]/uLsq[Prepend[Range[4,k],2]],{k,4,m}],
         {\[Sigma],Select[Permutations[Join[\[Alpha]\[Alpha],\[Beta]\[Beta]]],
-        \[Beta]\[Beta]=== Flatten[#/.Thread[\[Alpha]\[Alpha]->Map[{}&,\[Alpha]\[Alpha]]]]&]}]/.uLsq[a__]:>uLsq[a/.rule]
+        \[Beta]\[Beta] ~SameQ~  Flatten[#/.Thread[\[Alpha]\[Alpha]->Map[{}&,\[Alpha]\[Alpha]]]]&]}]/.uLsq[a__]:>uLsq[a/.rule]
     ]
 
 
@@ -1939,7 +1947,7 @@ bcjExpress[Atree[legs__,spins__],first_,second_,third_] :=
     bcjExpress[Atree[legs],first,second,third]/.Atree[a__]:>Atree[a,a/.Thread[Rule[legs,spins]]]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*4d SUSY Cut*)
 
 
@@ -1961,7 +1969,7 @@ collapseTrees[trees_] :=
                 happyHash[tree_] :=
                     happyHash[tree] = Sort[tree/.Atree[a_]:>Atree[a/.getKRules[tree]]/.Atree[a_]:>rotateList[a,Ordering[a,1][[1]]]];
                 happySame[a_,b_] :=
-                    (happyHash[a]===happyHash[b]);
+                    (happyHash[a] ~SameQ~ happyHash[b]);
                 uniqCandidates = Union[candidates,SameTest->happySame];
                 StylePrint[{"uniq Cand",uniqCandidates}];
                 goodCandidates = Append[goodCandidates,uniqCandidates];
@@ -1995,17 +2003,17 @@ getMHVRules[treeList_,hashRule_] :=
         maxDigits = 2^(lC = Length[candidates])-1;
         rules =
         (Thread[candidates->(2IntegerDigits[#,2,lC]-1)])&/@Range[0,maxDigits];
-        (* goodRules=Select[rules,(me=#;(Map[nmhvLevel[#[[1]]/.me]&,treeList]//Union)==={0})&] ;*)
+        (* goodRules=Select[rules,(me=#;(Map[nmhvLevel[#[[1]]/.me]&,treeList]//Union) ~SameQ~ {0})&] ;*)
         tL = treeList/.hashRule;
-        goodRules = Map[Join[hashRule,#]&,Select[rules,(And@@Map[nmhvLevel[#[[1]]]===0&,tL/.#])&] ]
+        goodRules = Map[Join[hashRule,#]&,Select[rules,(And@@Map[nmhvLevel[#[[1]]] ~SameQ~ 0&,tL/.#])&] ]
     ]
 
 goodMHV[treeList__] :=
-    nmhvLevel[First[treeList][[1]]]===0 &&(Length[treeList]===1||
+    nmhvLevel[First[treeList][[1]]] ~SameQ~ 0 &&(Length[treeList] ~SameQ~ 1||
     goodMHV[Rest[treeList]])
 
 goodMHV[treeList__,rules_] :=
-    treeList==={}||(nmhvLevel[treeList[[1,1]]/.rules]===0 &&
+    treeList ~SameQ~ {}||(nmhvLevel[treeList[[1,1]]/.rules] ~SameQ~ 0 &&
     goodMHV[Rest[treeList],rules])
 
 getMHVRules2[treeList_,hashRule_] :=
@@ -2016,7 +2024,7 @@ getMHVRules2[treeList_,hashRule_] :=
         maxDigits = 2^(lC = Length[candidates])-1;
         rules =
         ((Thread[candidates->(2IntegerDigits[#,2,lC]-1)])&/@Range[0,maxDigits]);
-        (* goodRules=Select[rules,(me=#;(Map[nmhvLevel[#[[1]]/.me]&,treeList]//Union)==={0})&] ;*)
+        (* goodRules=Select[rules,(me=#;(Map[nmhvLevel[#[[1]]/.me]&,treeList]//Union) ~SameQ~ {0})&] ;*)
         tL = treeList/.hashRule;
         goodRules = Map[Join[hashRule,#]&,Select[rules,goodMHV[tL,#]&] ]
     ]
@@ -2025,9 +2033,9 @@ getMHVRules2[treeList_,hashRule_] :=
 selectCutList[cutList_,extRule_] :=
     Module[ {ccntr = 0},
         Select[(ccntr++;
-        (* If[Mod[ccntr,1000]===0,
+        (* If[Mod[ccntr,1000] ~SameQ~ 0,
         StylePrint[{ccntr,Length[cutList],Date[]}]];*)
-                {#,getMHVRules2[#,extRule]})&/@(cutList),#[[2]]=!={}&]
+                {#,getMHVRules2[#,extRule]})&/@(cutList),#[[2]] ~UnsameQ~ {}&]
     ]
 
 cutSig[cut_] :=
@@ -2040,13 +2048,13 @@ getKRules2[trees_,guys_] :=
 
 processCut[{cut__,ruleSets__},SUSY_] :=
     Module[ {
-    flatGuys = Select[cut/.Atree[a__]:>a/.-a_:>a//Flatten//Union,Head[#]===in&],num,kRules,
+    flatGuys = Select[cut/.Atree[a__]:>a/.-a_:>a//Flatten//Union,Head[#] ~SameQ~ in&],num,kRules,
     denom = Times@@(cut/.Atree[a__]:>{Times@@Thread[foo[a,rotateList[a,2]]]/.foo[i_,j_]:>spa[i,j]})},
         kRules = getKRules2[cut,flatGuys];
-        num = (Sum[cutSig[cut /. Atree[a__]:>Atree[a,a/.rule]]*Times@@ cut/.Atree[a__]:>spa@@Select[a,(#/.rule)===-1&],{rule,ruleSets}]^SUSY)*
+        num = (Sum[cutSig[cut /. Atree[a__]:>Atree[a,a/.rule]]*Times@@ cut/.Atree[a__]:>spa@@Select[a,(#/.rule) ~SameQ~ -1&],{rule,ruleSets}]^SUSY)*
         If[ SUSY<4,
             (
-            Sum[(cutSig[cut /. Atree[a__]:>Atree[a,a/.rule]]*Times@@ cut/.Atree[a__]:>spa@@Select[a,(#/.rule)===-1&])^(4-SUSY),{rule,ruleSets}]),
+            Sum[(cutSig[cut /. Atree[a__]:>Atree[a,a/.rule]]*Times@@ cut/.Atree[a__]:>spa@@Select[a,(#/.rule) ~SameQ~ -1&])^(4-SUSY),{rule,ruleSets}]),
             1
         ];
         (num/denom/.in[a_]:>flat[in[a]/.kRules])*1/(Times@@(uLsq[Flatten[{#/.kRules}/.Plus:>List]]&/@flatGuys))
@@ -2054,14 +2062,14 @@ processCut[{cut__,ruleSets__},SUSY_] :=
 
 processCut[{cut__,ruleSets__}] :=
     Module[ {
-    flatGuys = Select[cut/.Atree[a__]:>a/.-a_:>a//Flatten//Union,Head[#]===in&],num,kRules,
+    flatGuys = Select[cut/.Atree[a__]:>a/.-a_:>a//Flatten//Union,Head[#] ~SameQ~ in&],num,kRules,
     denom = Times@@(cut/.Atree[a__]:>{Times@@Thread[foo[a,rotateList[a,2]]]/.foo[i_,j_]:>spa[i,j]})},
     StylePrint[{"Using default globabl SUSY", SUSY}];
         kRules = getKRules2[cut,flatGuys];
-        num = (Sum[cutSig[cut /. Atree[a__]:>Atree[a,a/.rule]]*Times@@ cut/.Atree[a__]:>spa@@Select[a,(#/.rule)===-1&],{rule,ruleSets}]^SUSY)*
+        num = (Sum[cutSig[cut /. Atree[a__]:>Atree[a,a/.rule]]*Times@@ cut/.Atree[a__]:>spa@@Select[a,(#/.rule) ~SameQ~ -1&],{rule,ruleSets}]^SUSY)*
         If[ SUSY<4,
             (
-            Sum[(cutSig[cut /. Atree[a__]:>Atree[a,a/.rule]]*Times@@ cut/.Atree[a__]:>spa@@Select[a,(#/.rule)===-1&])^(4-SUSY),{rule,ruleSets}]),
+            Sum[(cutSig[cut /. Atree[a__]:>Atree[a,a/.rule]]*Times@@ cut/.Atree[a__]:>spa@@Select[a,(#/.rule) ~SameQ~ -1&])^(4-SUSY),{rule,ruleSets}]),
             1
         ];
         (num/denom/.in[a_]:>flat[in[a]/.kRules])*1/(Times@@(uLsq[Flatten[{#/.kRules}/.Plus:>List]]&/@flatGuys))
@@ -2090,13 +2098,13 @@ processCutList[goodCuts_] :=
 
 
 buildGraphDenom[graph_] :=
-    Times@@(uLsq[Flatten[{#1/.Plus:>List}]]&)/@(Select[(#1[[2]]&)/@graphPlotForm[graph],Head[#1]===in&]/.graphAlgRules[graph])^(-1)
+    Times@@(uLsq[Flatten[{#1/.Plus:>List}]]&)/@(Select[(#1[[2]]&)/@graphPlotForm[graph],Head[#1] ~SameQ~ in&]/.graphAlgRules[graph])^(-1)
 
 buildRHSNumberFromMom[trees_, parents_,mom_] :=
     (CCCCjj = 0;
      Clear[recBeast];
      Plus @@ Flatten[(CCCCjj++;
-                      ( getDressing[mEE = #1, recBeast[mEE] = Select[parents,graphHashCode[#]===graphHashCode[mEE]&], 
+                      ( getDressing[mEE = #1, recBeast[mEE] = Select[parents,graphHashCode[#] ~SameQ~ graphHashCode[mEE]&], 
                             DEFAULTDRESS]) /. dressed[{a_, b_, c_, d_}] :> 
                            buildGraphDenom[a]*c*d /. NoDressing[a___] :> {} /. 
                         uLsq[a__] :> uLsq[Flatten[a /. Plus :> List]] /.evaluateLsqRule[mom]/.evaluateLpRule[mom]& ) /@ 
@@ -2111,7 +2119,7 @@ getTheCut[cut_] :=
             -mom[flat[a]]; (*
         mom[flat[a_]]:=(mom/@a)- \[Xi] Lorentz[(mom/@a),(mom/@a)]/(2 Lorentz[(mom/@a),\[Xi]]); *)
         mom[flat[a_]] :=
-            If[ Head[a]===Plus,
+            If[ Head[a] ~SameQ~ Plus,
                 (mom/@a)- \[Xi] Lorentz[(mom/@a),(mom/@a)]/(2 Lorentz[(mom/@a),\[Xi]]),
                 (mom[a])- \[Xi] Lorentz[(mom[a]),(mom[a])]/(2 Lorentz[(mom[a]),\[Xi]])
             ];
@@ -2157,13 +2165,13 @@ getTheCutOld[cut_] :=
 
 Clear[findAllMhV];
 findAllMhV[tree_] :=
-    findAllMhV[tree] = Module[ {nextSteps,runHash,legs = Select[Flatten[tree/.Atree[a__]:>a/.-a_:>a]//Union,#[[1]]=!=k&]},
+    findAllMhV[tree] = Module[ {nextSteps,runHash,legs = Select[Flatten[tree/.Atree[a__]:>a/.-a_:>a]//Union,#[[1]] ~UnsameQ~ k&]},
                            If[ Max[Length[#[[1]]]&/@tree]<=5 &&Min[Length[#[[1]]]&/@tree]>=4,
                                Return[validMHV[tree]],
                                Map[(runHash[#] = Plus@@((-1+Length[tree[[ (#[[1]][[1]][[1]]) ]][[1]] ])&/@Position[tree,#]))&,legs];
                                nextSteps = Select[Map[Catch[mergeLegsTreeLevel[tree,#]]&,
                                                                                    Select[legs,5>=runHash[#]>=4&]],!StringQ[#]&];
-                               If[ nextSteps=!={},
+                               If[ nextSteps ~UnsameQ~ {},
                                    Return[Sort[Union[Flatten[Map[findAllMhV,nextSteps]]],OrderedQ[{Length[#1[[1]]],Length[#2[[1]]]}]&]];,
                                    {}
                                ]
@@ -2173,13 +2181,13 @@ findAllMhV[tree_] :=
 
 Clear[findAllColl];
 findAllColl[tree_,max_] :=
-    findAllColl[tree,max] = Module[ {nextSteps,runHash,legs = Select[Flatten[tree/.Atree[a__]:>a/.-a_:>a]//Union,#[[1]]=!=k&]},
+    findAllColl[tree,max] = Module[ {nextSteps,runHash,legs = Select[Flatten[tree/.Atree[a__]:>a/.-a_:>a]//Union,#[[1]] ~UnsameQ~ k&]},
                                 If[ Max[Length[#[[1]]]&/@tree]<=max &&Min[Length[#[[1]]]&/@tree]>=4,
                                     Return[validCol[tree]],
                                     Map[(runHash[#] = Plus@@((-1+Length[tree[[ (#[[1]][[1]][[1]]) ]][[1]] ])&/@Position[tree,#]))&,legs];
                                     nextSteps = Select[Map[Catch[mergeLegsTreeLevel[tree,#]]&,
                                                                                         Select[legs,max>=runHash[#]>=4&]],!StringQ[#]&];
-                                    If[ nextSteps=!={},
+                                    If[ nextSteps ~UnsameQ~ {},
                                         Return[Sort[Union[Flatten[Map[findAllColl[#,max]&,nextSteps]]],OrderedQ[{Length[#1[[1]]],Length[#2[[1]]]}]&]];,
                                         {}
                                     ]
@@ -2205,7 +2213,7 @@ getTheCutCompare[cut_,cutGraphSoln_] :=
             -mom[flat[a]]; (*
         mom[flat[a_]]:=(mom/@a)- \[Xi] Lorentz[(mom/@a),(mom/@a)]/(2 Lorentz[(mom/@a),\[Xi]]); *)
         mom[flat[a_]] :=
-            If[ Head[a]===Plus,
+            If[ Head[a] ~SameQ~ Plus,
                 (mom/@a)- \[Xi] Lorentz[(mom/@a),(mom/@a)]/(2 Lorentz[(mom/@a),\[Xi]]),
                 (mom[a])- \[Xi] Lorentz[(mom[a]),(mom[a])]/(2 Lorentz[(mom[a]),\[Xi]])
             ];
@@ -2239,9 +2247,9 @@ tHat[graph_, leg_] :=
        {a, b} = Select[trees, Count[#1, leg, Infinity] > 0 & ]; 
        rest = Complement[trees, {a, b}]; {pos, neg} = 
    If[Count[a, -leg, Infinity] > 0, 
-           {b, a}, {a, b}]; counter = 0; While[pos[[1]][[-1]] =!= leg, 
+           {b, a}, {a, b}]; counter = 0; While[pos[[1]][[-1]]  ~UnsameQ~  leg, 
          pos = Atree[rotateList[pos[[1]], 2]]]; counter = 0; 
-  While[neg[[1]][[1]] =!= -leg, 
+  While[neg[[1]][[1]]  ~UnsameQ~  -leg, 
          neg = Atree[rotateList[neg[[1]], 2]]]; {k1, k2, a} = 
    pos[[1]]; 
        {a, k3, k4} = neg[[1]]; 
@@ -2268,10 +2276,10 @@ uHat[graph_, leg_] :=
                      ];
         StylePrint[{"+-",pos,neg}];
         counter = 0;
-        While[pos[[1]][[-1]] =!= leg, 
+        While[pos[[1]][[-1]]  ~UnsameQ~  leg, 
         pos = Atree[rotateList[pos[[1]], 2]]];
         counter = 0;
-        While[neg[[1]][[1]] =!= -leg, 
+        While[neg[[1]][[1]]  ~UnsameQ~  -leg, 
         neg = Atree[rotateList[neg[[1]], 2]]];
         StylePrint[{"+-",pos,neg}];
         counter = 0;
@@ -2321,7 +2329,7 @@ getIndepLegs[trees_] :=
         stuff = Union[Complement[intLegs, 
               (#1[[1]] & ) /@ rules], 
             Select[Flatten[(#1[[2]] /. Plus :> List /. 
-                       -(a_) :> a & ) /@ rules], #1 =!= 0 & ]];
+                       -(a_) :> a & ) /@ rules], #1  ~UnsameQ~  0 & ]];
         If[ Length[stuff] < NUMINDEPLEGS,
             Throw[{trees, stuff}]
         ];
@@ -2419,7 +2427,7 @@ internalOneLoopTadpoleQ[g_] :=
     Module[ {gpf = 
        consistentGraphToTrees[
         g]},
-        ! (And @@ ((Length[# /. Atree[a__] :> a /. -a_ :> a] === 
+        ! (And @@ ((Length[# /. Atree[a__] :> a /. -a_ :> a]  ~SameQ~  
         Length[Union[# /. Atree[a__] :> a /. -a_ :> a]]) & /@ gpf))
     ]
 
@@ -2431,7 +2439,7 @@ matchGraphOrAdd[nG_, rule_, metaHolder_, badMaxSYMCheck_] :=
             num = Select[Range[Length[all]], isIsomorphic[corruptGraph[all[[#]]],corruptGraph[ nG]] &, 1];
             StylePrint[{"Here we are now", num, InputForm[nG], InputForm[all]
               }];
-            If[ num === {},
+            If[ num  ~SameQ~  {},
                 num = Length[all] + 1;
                 metaHolder["graphSet"] = Append[all, nG /. rule];
                 metaHolder["worryList"] = Append[toWorry, num];
@@ -2447,7 +2455,7 @@ scoreRulesForLegs[rules_] :=
     Module[ {Subscript},
         Subscript[a_, b_] :=
             a[b];
-        Total[Map[If[ # === (# /. rules),
+        Total[Map[If[ #  ~SameQ~  (# /. rules),
                       0,
                       100
                   ] &, 
@@ -2461,7 +2469,7 @@ isomorphicRulesAllWithSig[graphA_, graphB_] :=
 
 getMatchingGraphsOne[graphA_, graphFunc_, 
   num_] :=
-    (If[ Flatten[{num}][[1]] =!= 0,
+    (If[ Flatten[{num}][[1]]  ~UnsameQ~  0,
          Module[ {extLabelRules, indepLegs, StylePrint},
              StylePrint["About to extLabelRules"];
              extLabelRules = 
@@ -2517,10 +2525,10 @@ jacobiGraphOnLeg[graph_, leg_, metaHolder_, excludeGraphFunc_] :=
                          {a, b}
                      ];
         counter = 0;
-        While[pos[[1]][[-1]] =!= leg, 
+        While[pos[[1]][[-1]]  ~UnsameQ~  leg, 
         pos = Atree[rotateList[pos[[1]], 2]]];
         counter = 0;
-        While[neg[[1]][[1]] =!= -leg, neg = Atree[rotateList[neg[[1]], 2]]];
+        While[neg[[1]][[1]]  ~UnsameQ~  -leg, neg = Atree[rotateList[neg[[1]], 2]]];
         {k1, k2, a} = pos[[1]];
         {a, k3, k4} = neg[[1]];
         myTree = Join[rest, {Atree[{k1, k2, k3, k4}]}];
@@ -2555,7 +2563,7 @@ twoFersMap[eqn_] :=
              color[{a}][b]) /. color[{a_}][b__] :> a} // Flatten // Sort)
 
 twoFersEqual[a_, b_] :=
-    (twoFersMap[a] === twoFersMap[b])
+    (twoFersMap[a]  ~SameQ~  twoFersMap[b])
 
 unionSortExprs[jacEqns_] :=
     #[[1]] & /@ 
@@ -2575,13 +2583,13 @@ buildRules[rules_, eqns_, SN_] :=
     Module[ {newRules = rules, 
       newEqns = Flatten[#] & /@ (eqns /. rules /. specialRules[SN]),
       cntr = Length[rules], rle, nextEqns, num},
-        While[(nextEqns = Select[newEqns, Length[#] === 1 &, 1]) =!= {},
+        While[(nextEqns = Select[newEqns, Length[#]  ~SameQ~  1 &, 1])  ~UnsameQ~  {},
          nextEqns = nextEqns[[1]];
          num = nextEqns[[1]];
          rle = num -> {};
          newEqns = Select[
            Map[Flatten[# /. rle] &, newEqns]
-           , # =!= {} &];
+           , #  ~UnsameQ~  {} &];
          cntr++;];
         cntr
     ];
@@ -2590,8 +2598,8 @@ mergeLegsTreeLevelWhoo[trees_, a_] :=
     Module[ {bt = 
     Select[trees, Count[#1, a /. -(b_) :> b, Infinity] > 0 & ], 
         gt = a /. -(b_) :> b},
-        If[ Length[bt] =!= 2,
-            If[ Length[bt] === 1,
+        If[ Length[bt]  ~UnsameQ~  2,
+            If[ Length[bt]  ~SameQ~  1,
                 trees /. {-a -> {}, a -> {}} /. Atree[b_] :> Atree[Flatten[b]],
                 Throw[{"Bad collapse ", trees, a, bt}]
             ],
@@ -2638,7 +2646,7 @@ noCrappyGuysInJacEqn[jacEqn_] :=
     Module[ {guys = 
        Reap[jacEqn /. color[{a_}][b__] :> Sow[a]][[2]] // Flatten // 
      Union},
-        Intersection[guys, definitelyGood] === guys
+        Intersection[guys, definitelyGood]  ~SameQ~  guys
     ]
 
 reformatEqnRule[eqn_, num_,LEGS_,LOOPS_] :=
@@ -2692,7 +2700,7 @@ reformatEqn[eqn_, num_,LEGS_,LOOPS_] :=
           StylePrint[num];
           colors = 
             Select[colors, # /. c_ color[a_][b_] :> color[a][b] /. 
-                  color[{a_}][b_] :> a === num &, 1];
+                  color[{a_}][b_] :> a  ~SameQ~  num &, 1];
           StylePrint[{"Got the guy", colors}];
           If[ Length[colors] > 1,
                
@@ -2749,16 +2757,16 @@ iterate[{oldRules_, oldEqns_},LEGS_,LOOPS_] :=
             candidateSearch = 
              Select[oldEqns, (Length[Flatten[twoFersMap[#]]] > 2 &&
                  
-                 Length[Flatten[twoFersMap[# /. specialRules[SPECIALNUM]]]] ===
+                 Length[Flatten[twoFersMap[# /. specialRules[SPECIALNUM]]]]  ~SameQ~ 
                    1) &];
             StylePrint["CANDIDATE SEARCH"];
             StylePrint[candidateSearch // Short];
-            If[ candidateSearch === {},
+            If[ candidateSearch  ~SameQ~  {},
                 {oldRules, oldEqns},
                 Do[StylePrint[{"sh eqn", eqn // Short}];
                    StylePrint[{"sh eqn, ruled", 
                      eqn //. nextRules // Expand // Short}];
-                   cand = If[ (eqn //. nextRules // Expand) === True,
+                   cand = If[ (eqn //. nextRules // Expand)  ~SameQ~  True,
                               True,
                               StylePrint[{"mapped", 
                                  twoFersMap[eqn //. nextRules // Expand]} // Short];
@@ -2767,11 +2775,11 @@ iterate[{oldRules_, oldEqns_},LEGS_,LOOPS_] :=
                                  specialRules[SPECIALNUM]][[1]]
                           ];
                    StylePrint[{"cand", cand}];
-                   If[ cand === True || cand === True[[1]] || cand === {}[[1]],
+                   If[ cand  ~SameQ~  True || cand  ~SameQ~  True[[1]] || cand  ~SameQ~  {}[[1]],
                        StylePrint["Already got one!"],
                        rulez = reformatEqnRule[eqn /. nextRules, cand,LEGS,LOOPS];
                        StylePrint[rulez // Short];
-                       If[ Head[rulez] === RuleDelayed,
+                       If[ Head[rulez]  ~SameQ~  RuleDelayed,
                            nextRules = Append[nextRules, rulez],
                            Throw[{"bogus dude!!", eqn}]
                        ];
@@ -2792,13 +2800,13 @@ iterate[{oldRules_, oldEqns_},LEGS_,LOOPS_] :=
 
 
 findGoodSet[graph_] :=
-    If[ Head[graphHashCode[graph]]===Graph,
+    If[ Head[graphHashCode[graph]] ~SameQ~ Graph,
         {},
         Module[ {StylePrint,intLegs = getIntLegs[graph],n = 0,goodSet = {}},
-            While[goodSet==={}&&n<10,
+            While[goodSet ~SameQ~ {}&&n<10,
                n++;
                StylePrint["Trying "<>ToString[n]];
-               goodSet = Map[{#,priveledgeSomeLegs[graph,Flatten[{#}]],graphHashCode[priveledgeSomeLegs[graph,Flatten[{#}]]]}&, Select[Subsets[intLegs,{n}],Head[graphHashCode[priveledgeSomeLegs[graph,Flatten[{#}]]]]===Graph&]];
+               goodSet = Map[{#,priveledgeSomeLegs[graph,Flatten[{#}]],graphHashCode[priveledgeSomeLegs[graph,Flatten[{#}]]]}&, Select[Subsets[intLegs,{n}],Head[graphHashCode[priveledgeSomeLegs[graph,Flatten[{#}]]]] ~SameQ~ Graph&]];
                StylePrint[{"Got ", goodSet}];  
              ];
             goodSet
@@ -2808,7 +2816,7 @@ findGoodSet[graph_] :=
 
 monsterPairingOld[poR_,rule_] :=
     Module[ {StylePrint,strippedRule =
-    Select[rule,Head[First[#]]=!=Times&&#[[1]]=!=#[[2]]&],expr},
+    Select[rule,Head[First[#]] ~UnsameQ~ Times&&#[[1]] ~UnsameQ~ #[[2]]&],expr},
         StylePrint["Monster pairing"];
         StylePrint[{"Pairs of Redundancy", poR}];
         StylePrint[{"Stripped rule",strippedRule}];
@@ -2816,7 +2824,7 @@ monsterPairingOld[poR_,rule_] :=
           Rule[c___]:>Rule@@((blam = {Rule[c],"In",poR/.-a_:>a,
           "the thing",#/.-a_:>a,
           "and it's", Position[poR/.-a_:>a,# /.-a_:>a]};
-                              If[ blam[[-1]]=!={},
+                              If[ blam[[-1]] ~UnsameQ~ {},
                                   StylePrint[{blam}]
                               ];
                               Position[poR/.-a_:>a,# /.-a_:>a])&/@
@@ -2824,20 +2832,20 @@ monsterPairingOld[poR_,rule_] :=
         StylePrint[{"SaftyCheckA", safetyCheckA}];
         safetyCheck = safetyCheckA/.Rule[{},{}]->{}/. Rule[a_,{}]:>BLAMM/.Rule[{},a_]:>BLAMM//Flatten;
         StylePrint[{"SaftyCheck", safetyCheck}];
-        If[ Position[safetyCheck,BLAMM]=!={},
+        If[ Position[safetyCheck,BLAMM] ~UnsameQ~ {},
             {},
-            If[ safetyCheck==={},
+            If[ safetyCheck ~SameQ~ {},
                 rule,
                 expr = Position[poR/.-a_->a,#[[1]]]&/@strippedRule;
                 StylePrint[{"expr",expr}];
                 StylePrint[{"strippedRule",strippedRule}];
-                If[ Flatten[expr]==={},
+                If[ Flatten[expr] ~SameQ~ {},
                     rule,
                     somePairz = First[Flatten[expr[[#]]]]&/@(
-                      goodLy = Select[Range[Length[expr]],expr[[#]]=!={}&]);
+                      goodLy = Select[Range[Length[expr]],expr[[#]] ~UnsameQ~ {}&]);
                     StylePrint[{"Some pairz",somePairz}];
                     StylePrint[{"GoodLy",goodLy}];
-                    If[ Length[somePairz//Union]===1,
+                    If[ Length[somePairz//Union] ~SameQ~ 1,
                         StylePrint[{"1] sr@goodly",strippedRule[[#]]&/@goodLy}];
                         sstrippedRule = strippedRule;
                         ppoR = poR;
@@ -2858,7 +2866,7 @@ monsterPairingOld[poR_,rule_] :=
                                        strippedRule[[goodLy[[1]],2]]/
                                        poR[[sP[[2]]]][[1]] poR[[somePairz[[2]]]]]
                             ],
-                            If[ ((Length/@somePairz)//Union//Length)=!=1,
+                            If[ ((Length/@somePairz)//Union//Length) ~UnsameQ~ 1,
                                 Throw["Bad play dude!"];,
                                 StylePrint[{"2] sr@goodly",strippedRule[[#]]&/@goodLy}];
                                 sstrippedRule = strippedRule;
@@ -2882,7 +2890,7 @@ monsterPairingOld[poR_,rule_] :=
 
 monsterPairing[poR_,rule_] :=
     Module[ {StylePrint,
-    strippedRule = Select[rule,Head[First[#]]=!=Times&&#[[1]]=!=#[[2]]&],
+    strippedRule = Select[rule,Head[First[#]] ~UnsameQ~ Times&&#[[1]] ~UnsameQ~ #[[2]]&],
     safetyCheck,safetyCheckA,porSwitchingLooksLike,
     blowUpStrippedRule,relStrippedRule,nullIt,doob,daab},
 (* stripped Rule is the goodIso rule taking poR someplace else,
@@ -2895,7 +2903,7 @@ either to it's own negative or to a friend somewhere else *)
           Rule[c___]:>Rule@@((blam = {Rule[c],"In",poR/.-a_:>a,
           "the thing",#/.-a_:>a,
           "and it's", Position[poR/.-a_:>a,# /.-a_:>a]};
-                              If[ blam[[-1]]=!={},
+                              If[ blam[[-1]] ~UnsameQ~ {},
                                   StylePrint[{blam}]
                               ];
                               Position[poR/.-a_:>a,# /.-a_:>a])&/@
@@ -2906,9 +2914,9 @@ either to it's own negative or to a friend somewhere else *)
         StylePrint[{"SaftyCheck", safetyCheck}];
         porSwitchingLooksLike = safetyCheck/.Rule[a__,b__]:>Rule[
             First[a//Flatten],First[b//Flatten]];
-        If[ Position[safetyCheck,BLAMM]=!={},
+        If[ Position[safetyCheck,BLAMM] ~UnsameQ~ {},
             {},
-            If[ safetyCheck==={},
+            If[ safetyCheck ~SameQ~ {},
                 StylePrint["Empty safety"];
                 blowUpStrippedRule = Map[Thread[Rule[#,#]]&,pairsOfRedundancy];
                 Flatten[
@@ -2917,7 +2925,7 @@ either to it's own negative or to a friend somewhere else *)
                       rule]]//Union,
                 (*Relevant Stripped Rule *)
                 relStrippedRule = Select[strippedRule,
-                   Position[poR/.-a_:>a,#[[1]]/.-a_:>a]=!={}&];
+                   Position[poR/.-a_:>a,#[[1]]/.-a_:>a] ~UnsameQ~ {}&];
                 StylePrint[{"relStrippedRule",relStrippedRule}];
                 nullIt = Map[#->1&,Flatten[relStrippedRule/.(-a_ :> a)/.
                    Rule:>List]]//Flatten//Union;
@@ -2950,7 +2958,7 @@ findAllCorruptEdgeIso[graph_] :=
     Module[ {StylePrint,styleprint,comb,myGoodset, myFirstClust, myRules},
         myStrippedGuy = stripPriveledge[graph];
         mmyGoodset = myGoodset = findGoodSet[myStrippedGuy];
-        If[ Flatten[myGoodset] === {},
+        If[ Flatten[myGoodset]  ~SameQ~  {},
             isomorphicEdgeRulesAll[corruptGraph[graph], corruptGraph[graph]],
             makingTheWorldSafe = First/@mmyGoodset;
             redGuyz = Flatten[ makingTheWorldSafe]//Union;
@@ -2962,9 +2970,9 @@ findAllCorruptEdgeIso[graph_] :=
               ,myGuy], Position[
             consistentGraphToTrees[myStrippedGuy]
               ,-myGuy]]}];
-            qqqq,Length[#]===3&]} ];
+            qqqq,Length[#] ~SameQ~ 3&]} ];
                          rrrr},{myGuy,redGuyz}],#[[2]]&])//Union)]<2,
-            redGuyz = redGuyz/.Map[#->-#&,Flatten[Select[pairsOfRedundancy,Length[#]===1&,1]]];
+            redGuyz = redGuyz/.Map[#->-#&,Flatten[Select[pairsOfRedundancy,Length[#] ~SameQ~ 1&,1]]];
 ];
             strippedGraph = myStrippedGuy /.Flatten[Map[ Sort[{-#->{},#->{}}]&,Rest[#]]&/@pairsOfRedundancy]/.neckl[a__]:>neckl[Flatten[a]];
             goodIso = isomorphicEdgeRulesAll[strippedGraph,strippedGraph];
@@ -2979,7 +2987,7 @@ findAllCorruptEdgeIso[graph_] :=
             moR = monsterPairing[pairsOfRedundancy,#]&/@notBadIso;
             StylePrint[moR];
             goodIso = Select[
-            moR,#=!={}&];
+            moR,# ~UnsameQ~ {}&];
             stupidIsos = Outer[comb[Sort[{##}//Flatten]]&,##,1]&[Sequence@@Table[Table[Thread[pair->perm],
             {perm,Permutations[pair]}],{pair,pairsOfRedundancy}]]//Flatten//Union;
             stupidIsos = stupidIsos/.comb[rules__]:>comb[Join[rules,rules/.Rule[a_,b_]:>Rule[-a,-b]]//Flatten//Union];
@@ -2988,8 +2996,8 @@ findAllCorruptEdgeIso[graph_] :=
                  ,Reverse/@# *) }]]&,((Sort/@Flatten[stupidIsos/.comb[rules__]:>Flatten[
             {bbbb = (#/.Rule[a_,b_]:>Rule[a,b/.rules]),
             you = #;
-            Select[rules,Position[First/@you,#[[1]]]==={}&&
-            Position[First/@you,-#[[1]]]==={}&]}] &/@goodIso,1])//Union) ]  ]
+            Select[rules,Position[First/@you,#[[1]]] ~SameQ~ {}&&
+            Position[First/@you,-#[[1]]] ~SameQ~ {}&]}] &/@goodIso,1])//Union) ]  ]
         ]
     ]
 
@@ -3215,7 +3223,7 @@ doGravDressedCutWithContacts[cut_, gravDressing_, gravGraphs_] :=
 
   getGravDressing[graph_, graphList__, dressingStorage_] :=
       Module[ {myIsoRule, myGraph = Select[graphList, isIsomorphic[#1, graph] & ]},
-          If[ Length[myGraph] === 0,
+          If[ Length[myGraph]  ~SameQ~  0,
               Return[NoDressing[graph]],
               myGraph = First[myGraph];
               myIsoRule = isomorphicEdgeRule[myGraph, graph];
@@ -3339,7 +3347,7 @@ evaluateKltCut[cut_, ymDressing_, ymGraphs_] :=
 
 Clear[newKLT];
 newKLT[\[Rho]_, \[Tau]_, ki_] :=
-    If[ \[Rho] === {},
+    If[ \[Rho]  ~SameQ~  {},
         1,
         Module[ {j = \[Rho][[-1]], l, \[Beta], \[Gamma]},
             l = Flatten[Position[\[Tau], j]][[1]];
@@ -3352,7 +3360,7 @@ newKLT[\[Rho]_, \[Tau]_, ki_] :=
 
 treesToLoopsUOWithContactsSlow[cut_] :=
     Module[ {cubicCut = treesToLoopsUO[cut], grz, StylePrint},
-        If[ VERBOSETIMING === True,
+        If[ VERBOSETIMING  ~SameQ~  True,
             StylePrint[a_] :=
                 Print[Style[a]]
         ];
@@ -3458,7 +3466,7 @@ dressTreeUOWithContacts[Atree[list__]] :=
 
 doContactCollapse[cubicCut_] :=
     Module[ {grz, StylePrint},
-        If[ VERBOSETIMING === True,
+        If[ VERBOSETIMING  ~SameQ~  True,
             StylePrint[a_] :=
                 Print[Style[a]]
         ];
@@ -3536,7 +3544,7 @@ getNUOTreeWithContacts[n_] :=
                                                   ])
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Graph Web from Jacobi*)
 
 
@@ -3564,7 +3572,7 @@ Timing[While[Length[cutGraphData["worryList"]]>0,zenum=First[cutGraphData["worry
 StylePrint["Doing "<>ToString[zenum]];
 cutGraphData["worryList"]=Rest[cutGraphData["worryList"]];
 zeGraph=allFunction[zenum];
-gnL=Select[getIntLegs[zeGraph],Head[#]=!=zcutLeg&];
+gnL=Select[getIntLegs[zeGraph],Head[#] ~UnsameQ~ zcutLeg&];
 jacEqns=Join[jacEqns,Table[StylePrint[{zenum,leg,val=jacobiGraphOnLeg[zeGraph,leg,cutGraphData,graphExclusion]}];
 val,{leg,gnL}]];
 Say[{zenum,Length[cutGraphData["worryList"]],Length[jacEqns]}];
@@ -3587,28 +3595,29 @@ jacEqns2b=#[[1]]&/@jacEqns2a;
 jacEqns2=jacEqns2b;
 StylePrint[{"jacEqns2b",Length[jacEqns2b]}];
 specialRules[SPECIALNUM_]:=Thread[Rule[SPECIALNUM,Table[{},{Length[SPECIALNUM]}]]];
-buildRules[rules_,eqns_,SN_]:=Module[{newEqns=Flatten[#]&/@(eqns/.rules/.specialRules[SN]),cntr=Length[rules],rle,nextEqns,num},While[(nextEqns=Select[newEqns,Length[#]===1&,1])=!={},nextEqns=nextEqns[[1]];
+buildRules[rules_,eqns_,SN_]:=Module[{newEqns=Flatten[#]&/@(eqns/.rules/.specialRules[SN]),cntr=Length[rules],rle,nextEqns,num},While[(nextEqns=Select[newEqns,Length[#] ~SameQ~ 1&,1]) ~UnsameQ~ {},nextEqns=nextEqns[[1]];
 num=nextEqns[[1]];
 rle=num->{};
-newEqns=Select[Map[Flatten[#/.rle]&,newEqns],#=!={}&];
+newEqns=Select[Map[Flatten[#/.rle]&,newEqns],# ~UnsameQ~ {}&];
 cntr++;];
 cntr];
 zeroRules=reformatEqnRule[color[{#}][DEFAULTLABELSET[LEGS,LOOPS]]==0,#,LEGS,LOOPS]&/@bad;
 jacEqns3=(jacEqns2/.zeroRules)//Flatten//Union;
-jacEqns3=Union[Select[jacEqns3,#=!=True&],SameTest->twoFersEqual];
+jacEqns3=Union[Select[jacEqns3,# ~UnsameQ~ True&],SameTest->twoFersEqual];
 bipartiteGraph=Map[twoFersMap,jacEqns2]//Union;
 bi1=Select[bipartiteGraph,(Length[#]>1&&Length[Union[#]]>1)&];
-bish=Map[#->{}&,Select[bipartiteGraph,(Length[#]===1)&]//Flatten];
+bish=Map[#->{}&,Select[bipartiteGraph,(Length[#] ~SameQ~ 1)&]//Flatten];
 bi2=Select[Flatten[#/.bish]&/@bipartiteGraph,(Length[#]>1&&Length[Union[#]]>1)&];
-bish2=Map[#->{}&,Select[Flatten[#/.bish]&/@bipartiteGraph,(Length[#]===1)&]//Flatten];
+bish2=Map[#->{}&,Select[Flatten[#/.bish]&/@bipartiteGraph,(Length[#] ~SameQ~ 1)&]//Flatten];
 ubi2=Union[Flatten[bi2]];
 StylePrint[ubi2];
-SPECIALNUM=If[Length[all]===1,
+SPECIALNUM=If[Length[all] ~SameQ~ 1,
 {1},
-candSingleMasters=Select[ubi2,buildRules[bish,bi2,{#}]==numNEWGRAPHS-1&];
-If[candSingleMasters=!={}, Say[" *** YeS Cand Single Masters***"];
+candSingleMasters=Select[ubi2,buildRules[bish,bi2,{#}] ~SameQ~ (numNEWGRAPHS-1)&];
+If[candSingleMasters ~UnsameQ~ {}, Say[" *** YeS Cand Single Masters***"];
 myFoundMaster=
-   First[ Sort[candSingleMasters, OrderedQ[ If[planarQ[ web["graphSet"][[#]] ],-100*1/#,100*1/#]&/@{#1,#2}]&]];
+   First[ Sort[candSingleMasters, OrderedQ[ If[planarQ[ web["graphSet"][[#]] ],
+      -100*1/#,100*1/#]&/@{#1,#2}]&]];
 Say[{"I found this",myFoundMaster}];
 {myFoundMaster},
    Say[" *** No Cand Single Masters, trying dbl planar***"];
@@ -3617,21 +3626,23 @@ Say[{"I found this",myFoundMaster}];
    planarGraphs[[j]]},
    {j,i+1,Length[planarGraphs]}],
    {i,1,Length[planarGraphs]}],1];
-   candidatePlanarPairs=Select[pGC, buildRules[bish,bi2,#]==numNEWGRAPHS-Length[#]&];
+   candidatePlanarPairs=Select[pGC,( buildRules[bish,bi2,#] ~SameQ~ (numNEWGRAPHS-Length[#]) )&];
    If[Length[candidatePlanarPairs]>0, 
       Say[" *** Yes dbl planar***"];
       First[candidatePlanarPairs],
       Say[" *** No dbl planar, try 1 np+1pl ***"];
       pGC=Flatten[Table[Table[{planarGraphs[[i]],
          ubi2[[j]]},{j,1,Length[ubi2]}],{i,1,Length[planarGraphs]}],1];
-      candidatePlanarPairs=Select[pGC, buildRules[bish,bi2,#]==numNEWGRAPHS-Length[#]&];
+      candidatePlanarPairs=Select[pGC,
+         (buildRules[bish,bi2,#] ~SameQ~ (numNEWGRAPHS-Length[#]))&];
       If[Length[candidatePlanarPairs]>0,
           Say[" *** Yes 1 np+1pl ***"];
            First[candidatePlanarPairs],
           Say["***** go for 3 np!!"];
           pGT=Flatten[Table[Table[Table[{planarGraphs[[i]],planarGraphs[[j]],planarGraphs[[k]]},{k,j+1,Length[planarGraphs]}],
                {j,i+1,Length[planarGraphs]}],{i,1,Length[planarGraphs]}],2];
-          candidatePlanarTrips=Select[pGT, buildRules[bish,bi2,#]==numNEWGRAPHS-Length[#]&];
+          candidatePlanarTrips=Select[pGT, ( buildRules[bish,bi2,#] ~SameQ~ 
+          (numNEWGRAPHS-Length[#])) &];
           If[Length[candidatePlanarTrips]>0,
              candidatePlanarTrips//First,
              Throw["Fault--nomastersfound"]
@@ -3651,7 +3662,7 @@ jEq3=Select[jacEqns2,noCrappyGuysInJacEqn[#]&];
 Print[{"jEq3a",jEq3//Length}];
 jEq3=Flatten[jacEqns];
 Print[{"jEq3b",jEq3//Length}];
-bad=((twoFersMap[#]&/@Select[jEq3,(Length[twoFersMap[#]])==1&]))//Flatten//Union;
+bad=((twoFersMap[#]&/@Select[jEq3,(Length[twoFersMap[#]]) ~SameQ~ 1&]))//Flatten//Union;
 Print[{"definitelyGood",definitelyGood}];
 Print[{"bad",bad}];
 Print[{"jEq3",jEq3//Length}];
@@ -3661,7 +3672,7 @@ zeroRules=reformatEqnRule[color[{#}][DEFAULTLABELSET[LEGS,LOOPS]]==0,#,LEGS,LOOP
 Print[{"DEFAULTLABELSET",DEFAULTLABELSET[LEGS,LOOPS]}];
 Print[{"zeroRules",zeroRules//Length}];
 jacEqns3=(jEq3/.zeroRules)//Flatten//Union;
-jacEqns3=Union[Select[jacEqns3,#=!=True&],SameTest->twoFersEqual];
+jacEqns3=Union[Select[jacEqns3,# ~UnsameQ~ True&],SameTest->twoFersEqual];
 StylePrint[{"nR first",newRules//Length}];
 planarGraphs=Select[Range[numNEWGRAPHS],planarQ[all[[#]]]&];
         StylePrint[planarGraphs];
@@ -3669,8 +3680,8 @@ planarGraphs={};
 
 Module[{c=0},known=Join[SPECIALNUM];
 newRules=zeroRules;
-restEqns=unionSortExprs[Select[jacEqns3,(twoFersMap[#]//Length)===2&&(twoFersMap[#]//Union//Length)===2&]];
-While[Length[restEqns=unionSortExprs[Select[restEqns//.newRules,(#=!=True&&(twoFersMap[#]//Length)===2&&(twoFersMap[#]//Union//Length)===2)&]]]>0&&restEqns=!={True},
+restEqns=unionSortExprs[Select[jacEqns3,(twoFersMap[#]//Length) ~SameQ~ 2&&(twoFersMap[#]//Union//Length) ~SameQ~ 2&]];
+While[Length[restEqns=unionSortExprs[Select[restEqns//.newRules,(# ~UnsameQ~ True&&(twoFersMap[#]//Length) ~SameQ~ 2&&(twoFersMap[#]//Union//Length) ~SameQ~ 2)&]]]>0&&restEqns ~UnsameQ~ {True},
 StylePrint[{"indapreloop",newRules//Length,Length[restEqns]}];
 StylePrint[{"First eqn",nextEqn=First[restEqns]}]; 
 (myNumz=Reap[(nextEqn/.color[{a_}][b__]:>Sow[a])][[2]]/.Map[#->{}&,known ] /.Map[#->{}&, planarGraphs]//Flatten);
@@ -3679,7 +3690,7 @@ StylePrint[{"Da my known",known}];
 StylePrint[{"Da my rules",newRules}];
 StylePrint[{"Da my planar",planarGraphs}]; 
 
-If[myNumz=!={},
+If[myNumz ~UnsameQ~ {},
  StylePrint[{"whoopdee",c++;myNumz.c,c}];
 myNumz=First[Flatten[myNumz/.Map[#->{}&,planarGraphs]]];
 StylePrint[{"Decided",myNumz}];
@@ -3747,7 +3758,7 @@ corruptCutList[cutList_] :=
 
 getHardCutId[graph_,cutList_] :=
     Module[ {expr = Select[Range[Length[cutList]],isIsomorphic[toGraph[corruptCutList[cutList][[#]]],corruptGraph[graph]]&,1]},
-        If[ expr==={},
+        If[ expr ~SameQ~ {},
             Throw[badCutThrowObject[{"cutlist Incomplete!!",graph//stripPriveledge//consistentGraphToTrees,
                      graph}]],
             If[ Length[expr]>1,
@@ -3762,7 +3773,7 @@ buildADressingContainer[graphs_,graphDressings_] :=
     Module[ {myDressingObject},
         myDressingObject["graphs"] = graphs;
         myDressingObject["delayedContainers"] = {};
-        If[ Length[graphs]=!=Length[graphDressings],
+        If[ Length[graphs] ~UnsameQ~ Length[graphDressings],
             Throw["buildDressing length mismatch"];
         ];
         Do[myDressingObject["dressings"][graphs[[i]]] = graphDressings[[i]],{i,1,Length[graphs]}];
@@ -3788,7 +3799,7 @@ buildADressingContainer[graphs_,graphDressings_] :=
                 theFGPath = contactDir<>"*"<>("graphPattern"/.configRule);
                 StylePrint[{"theFGPath",theFGPath,DateString[]}];
                 impTable = {};
-                If[ ("FastLoad"/.configRule)=!=False,
+                If[ ("FastLoad"/.configRule) ~UnsameQ~ False,
                     StylePrint["Going speedy here!"];
                     iimptTable = impTable = Import[someStr =
                      "!find "<>contactDir<>"  -type f -name '*"<>("graphPattern"/.configRule)<>"' -exec grep -c True {} + | grep -v :0 | grep -v "<>("dressPattern"/.configRule),
@@ -3800,7 +3811,7 @@ buildADressingContainer[graphs_,graphDressings_] :=
                         StylePrint[{"Got some numZ!", Length[numZ], numZ//First,"graphPattern"/.configRule,DateString[]}];
                         If[ Length[numZ]>0,
                             gNumZ = Select[numZ,#<=Length[myCuts]&];
-                            If[ (gNumZ//Sort)=!=(numZ//Sort),
+                            If[ (gNumZ//Sort) ~UnsameQ~ (numZ//Sort),
                                 StylePrint[{"Cuts no longer part of package.",
                                  Complement[numZ,gNumZ]}];
                                 numZ = gNumZ;
@@ -3814,8 +3825,8 @@ buildADressingContainer[graphs_,graphDressings_] :=
                         ]
                     ]
                 ];
-                StylePrint[{"Now looking at: ", Length[impTable],Length[impTable]===1}];
-                If[ ("FastLoad"/.configRule)===False || Length[impTable]===1,
+                StylePrint[{"Now looking at: ", Length[impTable],Length[impTable] ~SameQ~ 1}];
+                If[ ("FastLoad"/.configRule) ~SameQ~ False || Length[impTable] ~SameQ~ 1,
                     StylePrint["Going slow -- fast is false or length 1"];
                     filenames = FileNames[theFGPath];
                     StylePrint[{"Filenames found:", Length[filenames]}];
@@ -3824,7 +3835,7 @@ buildADressingContainer[graphs_,graphDressings_] :=
                        Get[filename];
                        myGraph = corruptGraph[myDelayedObject["graphName"/.configRule]];
                          (* Either no contList, or graph matches canonical form at a string level. *)
-                       If[ ("verifyLoadSwitch"/.configRule)=!="verifyLoadSwitch",
+                       If[ ("verifyLoadSwitch"/.configRule) ~UnsameQ~ "verifyLoadSwitch",
                            test = myDelayedObject["verifyLoadSwitch"/.configRule];,
                            test = True
                        ];
@@ -3838,7 +3849,7 @@ buildADressingContainer[graphs_,graphDressings_] :=
                                        ]
                               ]
                               ],
-                               If[ ("deleteNonCanon"/.configRule)===True,
+                               If[ ("deleteNonCanon"/.configRule) ~SameQ~ True,
                                    DeleteFile[filename];
                                    strReplaceRule = ("graphPattern"->"dressPattern")/.configRule;
                                    DeleteFile[filename/.strReplaceRule];,
@@ -3864,8 +3875,8 @@ buildADressingContainer[graphs_,graphDressings_] :=
         myDressingObject["dressings"][myGraph_] :=
             Module[ {myContainer,myDress,myFNz,cg1,myFNzU},
                 myContainer = Select[myDressingObject["delayedContainers"],
-                  (#["inclusionQ"][myGraph]===True&&MemberQ[#["myGraphs"],corruptGraph[myGraph]])&,1];
-                If[ myContainer=!={},
+                  (#["inclusionQ"][myGraph] ~SameQ~ True&&MemberQ[#["myGraphs"],corruptGraph[myGraph]])&,1];
+                If[ myContainer ~UnsameQ~ {},
                     myContainer = First[myContainer];
                     ClearAll[myDelayedDressing];
                     StylePrint[{"Loading for the very first time!!",
@@ -3873,7 +3884,7 @@ buildADressingContainer[graphs_,graphDressings_] :=
                     Clear[completeGuy,currentDressHolderVar,myDelayedDressing];
                     completeGuy = False;
                     myFNz = FileNames[myContainer["dressingPath"][corruptGraph[myGraph]]<>"*"];
-                    If[ Length[myFNz]===1,
+                    If[ Length[myFNz] ~SameQ~ 1,
                         Get[myContainer["dressingPath"][corruptGraph[myGraph]]];,
                         Get[myContainer["dressingPath"][corruptGraph[myGraph]]];
                         currentDressHolderVar = (myDelayedDressing["dressingName"/.myContainer["configRule"]])[corruptGraph[myGraph]];
@@ -3886,8 +3897,8 @@ buildADressingContainer[graphs_,graphDressings_] :=
                              completeGuy = False)&,myFNzU];
                         completeGuy = cg1;
                     ];
-                    If[ completeGuy=!=True,
-                        If[ ("RequireConfirmedCompleteDressing"/.myContainer["configRule"])===True,
+                    If[ completeGuy ~UnsameQ~ True,
+                        If[ ("RequireConfirmedCompleteDressing"/.myContainer["configRule"]) ~SameQ~ True,
                             Throw[{"Dressing not confirmed with completeGuy=True", 
                                  myContainer["dressingPath"][corruptGraph[myGraph]]}];,
                             StylePrint[{"WARNING: Dressing not confirmed with completeGuy=True.  
@@ -3896,7 +3907,7 @@ buildADressingContainer[graphs_,graphDressings_] :=
                         ];
                     ];
                     myDress = (myDelayedDressing["dressingName"/.myContainer["configRule"]])[corruptGraph[myGraph]];
-                    myDressingObject["dressings"][corruptGraph[myGraph]] = If[ Head[myDress]===(myDelayedDressing["dressingName"/.myContainer["configRule"]]),
+                    myDressingObject["dressings"][corruptGraph[myGraph]] = If[ Head[myDress] ~SameQ~ (myDelayedDressing["dressingName"/.myContainer["configRule"]]),
                                                                                Throw[{"!!!!!!!!!WARNING!!!!!!! Need to redo graph dressing in:",
                                                                                myContainer["dressingPath"][corruptGraph[myGraph]], "and assign to graph",
                                                                                 corruptGraph[myGraph], "probably because corruptGraph has been updated and this dressing has not." }];
@@ -3908,13 +3919,13 @@ buildADressingContainer[graphs_,graphDressings_] :=
             ];
         myDressingObject["memberQ"][graph_] :=
             MemberQ[myDressingObject["graphs"],corruptGraph[graph]]||
-            Select[myDressingObject["graphs"],isIsomorphic[corruptGraph[graph],#]&,1]=!={};
+            Select[myDressingObject["graphs"],isIsomorphic[corruptGraph[graph],#]&,1] ~UnsameQ~ {};
         myDressingObject["addDressing"][myGraphA_,myDressing_] :=
             (Module[ {myGraph = corruptGraph[myGraphA]},
                  If[ MemberQ[myDressingObject["graphs"],myGraph],
                      Throw["Graph already defined"]
                  ];
-                 If[ (Select[myDressingObject["graphs"],isIsomorphic[myGraph,#]&]=!={} ),
+                 If[ (Select[myDressingObject["graphs"],isIsomorphic[myGraph,#]&] ~UnsameQ~ {} ),
                      Throw["< GRAPH CONFLICT >:  Graph really already defined"]
                  ];
                  myDressingObject["graphs"] = Append[myDressingObject["graphs"],myGraph];
@@ -3931,8 +3942,8 @@ buildADressingContainer[graphs_,graphDressings_] :=
         myDressingObject["findALabel"][myGraph_] :=
             (
             Module[ {myContainer,myId,configRule},
-                myContainer = Select[myDressingObject["delayedContainers"],(#["inclusionQ"][corruptGraph[myGraph]]===True)&,1];
-                If[ myContainer=!={},
+                myContainer = Select[myDressingObject["delayedContainers"],(#["inclusionQ"][corruptGraph[myGraph]] ~SameQ~ True)&,1];
+                If[ myContainer ~UnsameQ~ {},
                     myContainer = First[myContainer];
                     configRule = myContainer["configRule"];
                     myId = (ToExpression["labelGenerator"/. configRule])[corruptGraph[myGraph]],
@@ -3944,8 +3955,8 @@ buildADressingContainer[graphs_,graphDressings_] :=
             (
             Module[ {myContainer,myId,configRule},
                 myContainer = Select[myDressingObject["delayedContainers"],
-                      (#["inclusionQ"][corruptGraph[myGraph]]===True)&,1];
-                If[ myContainer=!={},
+                      (#["inclusionQ"][corruptGraph[myGraph]] ~SameQ~ True)&,1];
+                If[ myContainer ~UnsameQ~ {},
                     myContainer = First[myContainer];
                     configRule = myContainer["configRule"];
                     { "labelName"/.configRule, myId = (ToExpression["labelGenerator"/. configRule])[corruptGraph[myGraph]]},
@@ -3956,8 +3967,8 @@ buildADressingContainer[graphs_,graphDressings_] :=
         myDressingObject["getProfilePath"][myGraph_] :=
             (
             Module[ {myContainer,myId,configRule,path,dir,profilePath},
-                myContainer = Select[myDressingObject["delayedContainers"],(#["inclusionQ"][corruptGraph[myGraph]]===True)&,1];
-                If[ myContainer=!={},
+                myContainer = Select[myDressingObject["delayedContainers"],(#["inclusionQ"][corruptGraph[myGraph]] ~SameQ~ True)&,1];
+                If[ myContainer ~UnsameQ~ {},
                     myContainer = First[myContainer];
                     configRule = myContainer["configRule"];
                     dir = ("graphListPath"/.configRule);
@@ -3971,8 +3982,8 @@ buildADressingContainer[graphs_,graphDressings_] :=
         myDressingObject["getCubicKLTDIFFPath"][myGraph_] :=
             (
             Module[ {myContainer,myId,configRule,path,dir,profilePath},
-                myContainer = Select[myDressingObject["delayedContainers"],(#["inclusionQ"][corruptGraph[myGraph]]===True)&,1];
-                If[ myContainer=!={},
+                myContainer = Select[myDressingObject["delayedContainers"],(#["inclusionQ"][corruptGraph[myGraph]] ~SameQ~ True)&,1];
+                If[ myContainer ~UnsameQ~ {},
                     myContainer = First[myContainer];
                     configRule = myContainer["configRule"];
                     dir = ("graphListPath"/.configRule);
@@ -3986,8 +3997,8 @@ buildADressingContainer[graphs_,graphDressings_] :=
         myDressingObject["myContainer"][myGraph_] :=
             (
             Module[ {myContainer,myId,configRule},
-                myContainer = Select[myDressingObject["delayedContainers"],(#["inclusionQ"][corruptGraph[myGraph]]===True)&,1];
-                If[ myContainer=!={},
+                myContainer = Select[myDressingObject["delayedContainers"],(#["inclusionQ"][corruptGraph[myGraph]] ~SameQ~ True)&,1];
+                If[ myContainer ~UnsameQ~ {},
                     myContainer,
                     Null
                 ]
@@ -3998,8 +4009,8 @@ buildADressingContainer[graphs_,graphDressings_] :=
             DEATHALTCOUNTER,altID,myGraph = corruptGraph[myGraphA],
             myContainer,graphFile,graphPath,dressPath,tmpId,dressFile,loadFlag,contList,theDress,myId,
             configRule,verifyString,grapthPath},
-                myContainer = Select[myDressingObject["delayedContainers"],((#["inclusionQ"][myGraph]===True))&,1];
-                If[ myContainer=!={},
+                myContainer = Select[myDressingObject["delayedContainers"],((#["inclusionQ"][myGraph] ~SameQ~ True))&,1];
+                If[ myContainer ~UnsameQ~ {},
                     myContainer = First[myContainer];
                     configRule = myContainer["configRule"];
                     dir = ("graphListPath"/.configRule);
@@ -4013,9 +4024,9 @@ buildADressingContainer[graphs_,graphDressings_] :=
             DEATHALTCOUNTER,altID,myGraph = corruptGraph[myGraphA],
             myContainer,graphFile,graphPath,dressPath,tmpId,dressFile,loadFlag,contList,theDress,myId,
             configRule,verifyString,grapthPath},
-                myContainer = Select[myDressingObject["delayedContainers"],((#["inclusionQ"][myGraph]===True))&,1];
-                If[ NOSAVE===False,
-                    If[ myContainer=!={},
+                myContainer = Select[myDressingObject["delayedContainers"],((#["inclusionQ"][myGraph] ~SameQ~ True))&,1];
+                If[ NOSAVE ~SameQ~ False,
+                    If[ myContainer ~UnsameQ~ {},
                         myContainer = First[myContainer];
                         configRule = myContainer["configRule"];
                         If[ ListQ[contList = ("canonicalGraphLabels"/.configRule)]&& 
@@ -4065,8 +4076,8 @@ buildADressingContainer[graphs_,graphDressings_] :=
                             ];
                             verifyString = "verifyLoadSwitch"/.configRule;
                             theDress = myDressingObject["dressings"][myGraph];
-                            loadFlag = If[ theDress===0 || 
-                                        Head[theDress]===
+                            loadFlag = If[ theDress ~SameQ~ 0 || 
+                                        Head[theDress] ~SameQ~ 
                                      myContainer["dressings"],
                                            theDress = 0;
                                            False,
@@ -4075,14 +4086,14 @@ buildADressingContainer[graphs_,graphDressings_] :=
                             ClearAll[myDelayedObject];
                             myDelayedObject["verifyLoadSwitch"/.configRule] = loadFlag;
                             myDelayedObject["graphName"/.configRule] = myGraph;
-                            If[ Head[GRAPHPROPERTIES[myGraph]]=!=GRAPHPROPERTIES,
+                            If[ Head[GRAPHPROPERTIES[myGraph]] ~UnsameQ~ GRAPHPROPERTIES,
                                 myDelayedObject["graphProperties"] = GRAPHPROPERTIES[myGraph]
                             ];
-                            If[ ToExpression[("cleanFile"/.configRule)]===True && 
+                            If[ ToExpression[("cleanFile"/.configRule)] ~SameQ~ True && 
                             FileExistsQ[graphPath],
                                 DeleteFile[graphPath];
                             ];
-                            If[ ToExpression[("cleanFile"/.configRule)]===True && 
+                            If[ ToExpression[("cleanFile"/.configRule)] ~SameQ~ True && 
                             FileExistsQ[dressPath],
                                 DeleteFile[dressPath];
                             ];
@@ -4108,9 +4119,9 @@ buildADressingContainer[graphs_,graphDressings_] :=
         myDressingObject["saveAdjunctDelayedDressing"][myGraphA_, adjunctDressing_,adjunctLabel_] :=
             Module[ {dir,DEATHALTCOUNTER,altID,myGraph = corruptGraph[myGraphA],
             myContainer,graphFile,graphPath,dressPath,tmpId,dressFile,loadFlag,contList,theDress,myId,configRule,verifyString,grapthPath},
-                myContainer = Select[myDressingObject["delayedContainers"],((#["inclusionQ"][myGraph]===True))&,1];
-                If[ NOSAVE===False,
-                    If[ myContainer=!={},
+                myContainer = Select[myDressingObject["delayedContainers"],((#["inclusionQ"][myGraph] ~SameQ~ True))&,1];
+                If[ NOSAVE ~SameQ~ False,
+                    If[ myContainer ~UnsameQ~ {},
                         myContainer = First[myContainer];
                         configRule = myContainer["configRule"];
                         If[ ListQ[contList = ("canonicalGraphLabels"/.configRule)]&& 
@@ -4162,7 +4173,7 @@ DotPower[expr_, a_, n_] :=
     ];
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Vacuum Code*)
 
 
@@ -4177,7 +4188,7 @@ toVacuum[graph_,extLabels__] :=
 stripVacuum[graph_] :=
     Module[ {origGraph = graph,myRule,StylePrint,nextRules = graph/.neckl[{a_,b_}]:>Sow[neckl[{a,b}]]//Reap//Last//Flatten//Union},
         StylePrint[nextRules];
-        While[nextRules=!={},
+        While[nextRules ~UnsameQ~ {},
         myRule = First[nextRules]/.neckl[{a_,b_}]:>Sort[{-a->b,a->-b}];
         StylePrint[myRule];
         origGraph = origGraph//.myRule  /.neckl[{a_,a_}]:>{}/.neckl[{a_,-a_}]:>{}/.neckl[{-a_,a_}]:>{}/.vertexFormGraph[a__]:>vertexFormGraph[Flatten[a]];
@@ -4205,7 +4216,7 @@ stripVacuumRules[graph_] :=
     nextRules = Union[Flatten[Last[Reap[graph /. neckl[{a_, b_}] :> 
     Sow[neckl[{a, b}]]]]]]},
         StylePrint[nextRules];
-        While[nextRules =!= {}, myRule = First[nextRules] /. neckl[{a_, b_}] :> 
+        While[nextRules  ~UnsameQ~  {}, myRule = First[nextRules] /. neckl[{a_, b_}] :> 
              Sort[{-a -> b, a -> -b}];
                                 cacheRules = Flatten[{cacheRules,myRule} ];
                                 StylePrint[myRule];
@@ -4282,7 +4293,7 @@ opTillClosureOnCollection[collection_, {op1_, op2_}] :=
 getVertices[vertexFormGraph[necklaceList__]] := necklaceList
 
 flattenMomenta[myMom4_, \[Xi]_] := (myMom4[-flat[a_]] := -myMom4[flat[a]]; 
-  myMom4[flat[a_]] := If[Head[a] === Plus,
+  myMom4[flat[a_]] := If[Head[a]  ~SameQ~  Plus,
     (myMom4 /@ 
        a) - \[Xi] Lorentz[(myMom4 /@ a), (myMom4 /@ 
           a)]/(2 Lorentz[(myMom4 /@ a), \[Xi]]),
@@ -4290,9 +4301,9 @@ flattenMomenta[myMom4_, \[Xi]_] := (myMom4[-flat[a_]] := -myMom4[flat[a]];
        a]) - \[Xi] Lorentz[(myMom4[a]), (myMom4[
           a])]/(2 Lorentz[(myMom4[a]), \[Xi]])];)
 
-atreeRule = {Atree[lab_List, h_List] :> Module[{s = Plus @@ h, l = Length[h]}, 
-             
-     If[(Abs[s] >= l - 2 && l > 3) || Abs[s] == l, 0, If[Abs[s] == Abs[l - 4], 
+atreeRule = {Atree[lab_List, h_List] :> Module[{s = Plus @@ h, l = Length[h]},    
+     If[(Abs[s] >= l - 2 && l > 3) || (Abs[s] ~SameQ~ l), 0, 
+       If[ (Abs[s] ~SameQ~ Abs[l - 4]), 
                   MHVtree[lab, h], 
                  Print[Style[{Abs[s], l - 2, l, h}]]; Atree[lab, h]]]]}; 
 
@@ -4303,7 +4314,7 @@ mhvTreeRule = {MHVtree[lab_, hel_] :> Module[{negLegs, posLegs},
               
      posLegs = 
       Transpose[Select[Transpose[{lab, hel}], #1[[2]] > 0 & ]][[1]]; 
-              If[Length[negLegs] == 2, (I*spa[negLegs[[1]], negLegs[[2]]]^4)/
+              If[Length[negLegs] ~SameQ~ 2, (I*spa[negLegs[[1]], negLegs[[2]]]^4)/
                   (Times @@ 
           Table[spa[lab[[i]], lab[[i + 1]]], {i, 1, Length[lab] - 1}]*
          spa[Last[lab], lab[[1]]]), 
@@ -4325,7 +4336,7 @@ cutSumFormat[cut__] :=
         Sequence @@ cut} /. Module[{myRule = Map[# -> SuperscriptBox[#, "s"] &,
           First /@ 
            Select[ Flatten[cut /. -a_ :> a /. Atree :> List] // 
-             Tally, #[[2]] === 2 &]], StylePrint}, StylePrint[myRule]; 
+             Tally, #[[2]]  ~SameQ~  2 &]], StylePrint}, StylePrint[myRule]; 
        myRule]]], Large]]
 
 
