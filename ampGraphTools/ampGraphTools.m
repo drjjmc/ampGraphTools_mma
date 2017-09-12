@@ -22,7 +22,7 @@ therein. - dr.jjmc@gmail.com."]
 
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Some raw graphs *)
 
 
@@ -2495,10 +2495,40 @@ getMatchingGraphsOne[graphA_, graphFunc_,
 toGraph[trees_] :=
     toGraph[trees] = vertexFormGraph[trees /. Atree[a__] :> neckl[a]]
 
+fromCompressedGraph[graph_]:=Module[{extLegNum=Select[graph,Length[#]===1&]//Length},
+If[extLegNum===0, Select[Tally[Abs[Flatten[graph]]],#[[2]]===1&]//Length];
+tree[ a/.{n_:>-l[-n]/;
+NumberQ[n]&&n<0,
+n_:>k[n]/;NumberQ[n]&&0<n<=extLegNum,
+n_:>l[n]/;NumberQ[n]&&n>extLegNum}]//toGraph]
+
+fromCompressedDressing[dressing_]:=Throw["Not Implemented Yet"];
+
+symCount[graph_]:=Length[findAllCorruptEdgeIso[graph]]
+
 zeReals[trees_] := (StylePrint["zeReals is deprecated, use
 toGraph"];
     toGraph[trees])
     
+
+
+fromCompressedDressing[dressing_,extLegNum_]:=dressing /.t[a_,b_]:>2ulp@@(k/@{a,b})/.k[a_]:>If[a>extLegNum,l[a],k[a]]
+
+
+fromCompressedGraph[graph_]:=Module[{extLegNum=Select[graph,Length[#]===1&]//Length},
+If[extLegNum===0,extLegNum= Select[Tally[Abs[Flatten[graph]]],#[[2]]===1&]//Length];
+Atree/@graph/. Atree[a__]:>Atree[ a/.{n_:>-l[-n]/;
+NumberQ[n]&&n<0,
+n_:>k[n]/;NumberQ[n]&&0<n<=extLegNum,
+n_:>l[n]/;NumberQ[n]&&n>extLegNum}]//toGraph]
+
+
+importCompressedGraphsAndDressings[graphNameFunction_,dressingNameFunction_]:=Module[{graphSet,dressingFunction,list=Range[1,functionKeys[graphNameFunction]//Length],extLegNum},
+Print[list//Length," graphs"];
+graphSet=corruptGraph@*fromCompressedGraph@*graphNameFunction/@list;
+extLegNum=getExtLegs[graphSet[[1]]]//Length;
+(dressingFunction[graphSet[[#]]]=fromCompressedDressing[dressingNameFunction[#],extLegNum])&/@list;
+{graphSet,dressingFunction}]
 
 
 planarQ[graph_]:=planarQ[graph]=PlanarGraphQ[
