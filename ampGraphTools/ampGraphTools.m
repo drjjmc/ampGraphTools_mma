@@ -2298,7 +2298,7 @@ uHat[graph_, leg_] :=
 (*Tree operations*)
 
 
-getDotRules[trees_] :=
+(* so 4pt oriented. ?? getDotRules[trees_] :=
     Module[ {legs = 
        Flatten[trees /. Atree[a__] :> a /. -a_ :> a] // Union, vars, 
       expr, Subscript},
@@ -2319,7 +2319,15 @@ getDotRules[trees_] :=
                   ulp[Subscript[k, z_], Subscript[k, z_]] :> 0 /. 
                  ulp[0, z_] :> 0) &, legs]}];
         Rule @@ # & /@ (List @@ Reduce[expr, vars])
-    ]
+    ]  *)
+    
+getDotRules[trees_] := Module[{legs = Union[Flatten[trees /. Atree[a__] :> a /. -(a_) :> a]], vars, expr,extLegs, Subscript}, 
+    Subscript[a_, b_] := a[b]; extLegs=Select[legs,Head[#]===k&];vars = Union[Flatten[Outer[ulp[#1, #2] & , Flatten[legs/.k[a_]:>{}], legs]]]; 
+     expr = Flatten[{Map[ulp[#,#]==0&,extLegs], 
+        trees /. Atree[a__] :> (0 == ulp[#1, Plus @@ a] /. 
+        ulp[Subscript[k, z_], Subscript[k, z_]] :> 0 /. 
+             ulp[0, z_] :> 0 & ) /@ legs}]; (Rule @@ #1 & ) /@ List @@ 
+             Reduce[expr, vars]]
 
 getIndepLegs[trees_] :=
     Module[ {StylePrint, 
@@ -3583,9 +3591,8 @@ internalOneLoopBubbleQ[a]||
 internalOneLoopTadpoleQ[a];
 
 
-graphToWeb[aGraph_,graphExclusionF_]:=Module[{web,cutGraphData,
-bad,jacEqns,jacEqn,jacEqns2,jacEqns2b,jacEqns2a,numNEWGRAPHS,
-zcutLeg,val,zeNum,zeGraph,zenum,gnL,allFunction,graphExclusion,nextEqn,StylePrint},
+graphToWeb[aGraph_,graphExclusionF_, zcutLeg___]:=Module[{web,cutGraphData,
+bad,jacEqns,jacEqn,jacEqns2,jacEqns2b,jacEqns2a,numNEWGRAPHS,val,zeNum,zeGraph,zenum,gnL,allFunction,graphExclusion,nextEqn,StylePrint},
 bad=jacEqns=jacEqn=jacEqns2=jacEqns2b=jacEqns2a={};
 LEGS=getExtLegs[aGraph]//Length;
 LOOPS=Length[getMyCycles[aGraph]];
