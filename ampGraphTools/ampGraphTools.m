@@ -2035,7 +2035,7 @@ selectCutList[cutList_,extRule_] :=
         Select[(ccntr++;
         (* If[Mod[ccntr,1000] ~SameQ~ 0,
         StylePrint[{ccntr,Length[cutList],Date[]}]];*)
-                {#,getMHVRules2[#,extRule]})&/@(cutList),#[[2]] ~UnsameQ~ {}&]
+                {#,getMHVRules[#,extRule]})&/@(cutList),#[[2]] ~UnsameQ~ {}&]
     ]
 
 cutSig[cut_] :=
