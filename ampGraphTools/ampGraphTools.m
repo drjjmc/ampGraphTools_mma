@@ -1846,7 +1846,7 @@ getKRules[trees_] :=
 
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*KK & BCJ basis*)
 
 
@@ -1902,7 +1902,7 @@ bcj\[ScriptCapitalF][3,\[Sigma]_,1,k_,m_,n_] :=
     Module[ {\[Rho] = Join[{3},\[Sigma],{1}],
     t},
         t[kk_] :=
-            If[ kk ~SameQ~ (1+m),
+            If[ kk ~SameQ~ 1+m,
                 0,
                 If[ kk ~SameQ~ 3,
                     t[5],
@@ -1990,9 +1990,9 @@ getCutPrecursor[cut_] :=
         cutCandidates/.sewCut[a__]:>a
     ]     
 
-altNmhvLevel[list_] :=
+nmhvLevel[list_] :=
     -2-Plus@@(list/. 1:>0)
-nmhvLevel[list_]:= 1/4 (-8+Total@(list/. {-1:>4,-1/2:>3,0->2,1/2->1,1->0}))
+
 getMHVRules[treeList_,hashRule_] :=
     Module[ {candidates = Select[Union[
     Flatten[treeList/.Atree[a__]:>a/.hashRule/.-a_:>a]],!NumberQ[#]&],
@@ -2001,7 +2001,7 @@ getMHVRules[treeList_,hashRule_] :=
         zeHR = hashRule;
 (*maxDigits=FromDigits[Table[1,{Length[candidates]}],2]; *)
         maxDigits = 2^(lC = Length[candidates])-1;
-        rules =potMHVRules=
+        rules =
         (Thread[candidates->(2IntegerDigits[#,2,lC]-1)])&/@Range[0,maxDigits];
         (* goodRules=Select[rules,(me=#;(Map[nmhvLevel[#[[1]]/.me]&,treeList]//Union) ~SameQ~ {0})&] ;*)
         tL = treeList/.hashRule;
@@ -2017,13 +2017,13 @@ goodMHV[treeList__,rules_] :=
     goodMHV[Rest[treeList],rules])
 
 getMHVRules2[treeList_,hashRule_] :=
-    Module[ {candidates = treeList/.in[a_]:>Sow@in[a]//Reap//Last//Flatten//Union,maxDigits,goodRules,rules,lC},
+    Module[ {candidates = Select[Union[Flatten[treeList/.Atree[a__]:>a/.hashRule/.-a_:>a]],!NumberQ[#]&],maxDigits,goodRules,rules,lC},
         zeTL = treeList;
         zeHR = hashRule;
 (*maxDigits=FromDigits[Table[1,{Length[candidates]}],2]; *)
         maxDigits = 2^(lC = Length[candidates])-1;
-        rules =potMHVRules=
-        ((Thread[candidates->(2 IntegerDigits[#,2,lC]-1)])&/@Range[0,maxDigits]);
+        rules =
+        ((Thread[candidates->(2IntegerDigits[#,2,lC]-1)])&/@Range[0,maxDigits]);
         (* goodRules=Select[rules,(me=#;(Map[nmhvLevel[#[[1]]/.me]&,treeList]//Union) ~SameQ~ {0})&] ;*)
         tL = treeList/.hashRule;
         goodRules = Map[Join[hashRule,#]&,Select[rules,goodMHV[tL,#]&] ]
@@ -2032,13 +2032,10 @@ getMHVRules2[treeList_,hashRule_] :=
 
 selectCutList[cutList_,extRule_] :=
     Module[ {ccntr = 0},
-    primedCutList= {#,getMHVRules2[#,extRule]}&/@(cutList);
         Select[(ccntr++;
         (* If[Mod[ccntr,1000] ~SameQ~ 0,
         StylePrint[{ccntr,Length[cutList],Date[]}]];*)
-                primedCutList),
-                #[[2]] ~UnsameQ~ {}&
-         ]
+                {#,getMHVRules2[#,extRule]})&/@(cutList),#[[2]] ~UnsameQ~ {}&]
     ]
 
 cutSig[cut_] :=
@@ -2065,7 +2062,7 @@ processCut[{cut__,ruleSets__},SUSY_] :=
 
 processCut[{cut__,ruleSets__}] :=
     Module[ {
-    flatGuys = cut/.in[a_]:>Sow[in[a]]//Reap//Last//Flatten//DeleteDuplicates,num,kRules,
+    flatGuys = Select[cut/.Atree[a__]:>a/.-a_:>a//Flatten//Union,Head[#] ~SameQ~ in&],num,kRules,
     denom = Times@@(cut/.Atree[a__]:>{Times@@Thread[foo[a,rotateList[a,2]]]/.foo[i_,j_]:>spa[i,j]})},
     StylePrint[{"Using default globabl SUSY", SUSY}];
         kRules = getKRules2[cut,flatGuys];
