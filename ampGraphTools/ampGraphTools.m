@@ -849,7 +849,8 @@ dressedMomentaPlot[g_,opts___] :=
     GraphPlot[dressedGraphPlotForm[g],DirectedEdges->True,MultiedgeStyle->.24,opts]
 
 doMomentaPlot[g_,opts___] :=
-    GraphPlot[graphPlotForm[g],DirectedEdges->True,MultiedgeStyle->.24,opts]
+    GraphPlot[graphPlotForm[g],DirectedEdges->True,MultiedgeStyle->.24,Method-> {"SpringElectricalEmbedding"},
+    opts]
 
 blobForm[treeList__] :=
     vertexFormGraph[treeList/.Atree[a__]:>neckl[a]]
@@ -1231,7 +1232,7 @@ corruptGraph[graph_] :=
                           ]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*More plot code*)
 
 
@@ -1530,14 +1531,17 @@ umb[p_] :=
         {b[[2]],-b[[1]],0,0}
     ]
 
-gammamu = {{{0,0,0,1},
+gammamu = {{
+{0,0,0,1},
 {0,0,-1,0},
 {0,-1,0,0},
 {1,0,0,0}},
--1{{0,0,-1,0},
+-1{
+{0,0,-1,0},
 {0,0,0,1},
 {1,0,0,0},
-{0,-1,0,0}},
+{0,-1,0,0}
+},
 -1{{0,0,I,0},
 {0,0,0,I},
 {I,0,0,0},
@@ -1846,7 +1850,7 @@ getKRules[trees_] :=
 
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*KK & BCJ basis*)
 
 
@@ -1902,7 +1906,7 @@ bcj\[ScriptCapitalF][3,\[Sigma]_,1,k_,m_,n_] :=
     Module[ {\[Rho] = Join[{3},\[Sigma],{1}],
     t},
         t[kk_] :=
-            If[ kk ~SameQ~ 1+m,
+            If[ kk ~SameQ~ (1+m),
                 0,
                 If[ kk ~SameQ~ 3,
                     t[5],
