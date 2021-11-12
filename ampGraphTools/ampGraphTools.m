@@ -22,7 +22,7 @@ therein. - dr.jjmc@gmail.com."]
 
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Some raw graphs *)
 
 
@@ -63,11 +63,17 @@ multiLoopGraph[mm_,ll_] :=
     ];
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Expression tools*)
 
 
-getUniqDotsFromExpr[expr_]:=(foo/.ulp[a_,b_]:>Sow[ulp[a,b]]//Reap//Last//Flatten//Union);
+(*
+extractType[data_,head_]:=data /. head[a___]:>Sow[head[a]]//Reap//Last//Flatten;
+*)
+extractType[data_, head_] := Union[Cases[data, head[___], Infinity]]
+
+
+getUniqDotsFromExpr[expr_]:=(expr~extractType~ulp)
 
 
 functionKeys = DownValues[#][[All, 1, 1, 1]] &;  
@@ -260,7 +266,7 @@ fancyFormatQ := FFON
 Clear[Lorentz,Lsq];
 
 Lorentz[a__, b__] :=
-    First[a]*First[b] - Rest[a].Rest[b]
+    First[a]*First[b] - Rest[a] . Rest[b]
 
 Lsq[a_] :=
     If[ Head[a]  ~SameQ~  List,
@@ -1477,7 +1483,6 @@ newColorSimplify[expr_] :=
 (*Momenta and spinor code*)
 
 
-Spinor & Some Mom Code (including complex)
 
 spa[x__] :=
     Signature[{x}]*spa @@ Sort[{x}] /;  !OrderedQ[{x}] && FreeQ[{x}, Pattern] 
@@ -1552,9 +1557,9 @@ gammamu = {{
 {-1,0,0,0}}};
 
 spaEval[a_,b_] :=
-    umb[a].up[b]
+    umb[a] . up[b]
 spbEval[a_,b_] :=
-    upb[a].um[b]
+    upb[a] . um[b]
 polMinus[k_,q_] :=
     - (Map[upb[q] . # . up[k]&,gammamu]/(Sqrt[2]  spbEval[q,k]))
 polPlus[k_,q_] :=
@@ -1582,7 +1587,7 @@ refreshHLP
 
 getRandomNullVector[prec_,D_] :=
     Module[ {v = Table[ Random[Real, {-1, 1}, prec],{i,1,D-1}]},
-        Prepend[ -1^(RandomInteger[{0,1}])*v,Sqrt[v.v]]
+        Prepend[ -1^(RandomInteger[{0,1}])*v,Sqrt[v . v]]
     ]
 
 generateNullMomenta[l_, prec_,D_] :=
@@ -1788,7 +1793,7 @@ getRandomNullVector[prec_] :=
     Module[ {x = Random[Real,{-1,1},prec],
     y = Random[Real,{-1,1},prec],
     z = Random[Real,{-1,1},prec]},
-        {Sqrt[{x,y,z}.{x,y,z}],x,y,z}
+        {Sqrt[{x,y,z} . {x,y,z}],x,y,z}
     ];
 
 getRandomMassVector[prec_] :=
@@ -3197,7 +3202,7 @@ evaluateKltCut[cut_, ymDressing_, ymGraphs_] :=
             Block[ {ulp, uLsq, myRules},
                 myRules = (#[[1]] -> (#[[2]] //. rules)) & /@ neededFunctions;
                 myRules /. Rule :> Set;
-                leftVal.matrix.rightVal
+                leftVal . matrix . rightVal
             ];
         myFunction["dots"] = basisDots;
         myFunction
@@ -3325,7 +3330,7 @@ evaluateKltCutNoLsq[cut_, ymDressing_, ymGraphs_] :=
                 myRules = (#[[1]] -> (#[[2]] /. rules)) & /@ neededFunctions;
                 ulp[a_,a_] = 0;
                 myRules /. Rule :> Set;
-                leftVal.matrix.rightVal
+                leftVal . matrix . rightVal
             ];
         varNames = 
          ToExpression["XX" <> ToString[#]] & /@ Range[Length[basisDots]];
@@ -3376,7 +3381,7 @@ evaluateKltCut[cut_, ymDressing_, ymGraphs_] :=
             Block[ {ulp, uLsq, myRules},
                 myRules = (#[[1]] -> (#[[2]] /. rules)) & /@ neededFunctions;
                 myRules /. Rule :> Set;
-                leftVal.matrix.rightVal
+                leftVal . matrix . rightVal
             ];
         varNames = 
          ToExpression["XX" <> ToString[#]] & /@ Range[Length[basisDots]];
@@ -3732,7 +3737,7 @@ StylePrint[{"Da my rules",newRules}];
 StylePrint[{"Da my planar",planarGraphs}]; 
 
 If[myNumz ~UnsameQ~ {},
- StylePrint[{"whoopdee",c++;myNumz.c,c}];
+ StylePrint[{"whoopdee",c++;myNumz . c,c}];
 myNumz=First[Flatten[myNumz/.Map[#->{}&,planarGraphs]]];
 StylePrint[{"Decided",myNumz}];
 aRule=reformatEqnRule[nextEqn,myNumz,LEGS,LOOPS];
@@ -4209,8 +4214,8 @@ buildADressingContainer[graphs_,graphDressings_] :=
 
 DotPower[expr_, a_, n_] :=
     If[ n > 1,
-        DotPower[expr.a, a, n - 1],
-        expr.a
+        DotPower[expr . a, a, n - 1],
+        expr . a
     ];
 
 
