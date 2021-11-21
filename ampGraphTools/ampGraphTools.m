@@ -1191,6 +1191,20 @@ consistentGraphToTrees[vertexFormGraph[necklaces__]] :=
     necklaces/.neckl[a___]:>Atree[a]
 
 
+corruptGraphNoMemo[graph_] := If[Head[graphHashCode[graph]] === Graph, graph, 
+     Module[{goodSet, cG, StylePrint}, cG = minStripPriveledge[If[Head[graphHashCode[graph]] === Graph, graph, 
+          Module[{intLegs = getIntLegs[graph], n = 0}, goodSet = {}; While[goodSet === {} && n < 24, 
+             n++; StylePrint[StringJoin["Trying ", ToString[n]]]; goodSet = Select[Subsets[intLegs, {n}], 
+                Head[graphHashCode[priveledgeSomeLegs[graph, Flatten[{#1}]]]] === Graph & , 1]; StylePrint[{"Got ", goodSet}]; ]; 
+            If[n >= 24, n = 0; intLegs = Sort[getIntLegs[graph]]; goodSet = {}; While[goodSet === {} && n < 24, n++; 
+                StylePrint[StringJoin["Trying ", ToString[n]]]; goodSet = Select[Subsets[intLegs, {n}], 
+                  Head[graphHashCode[priveledgeSomeLegs[graph, Flatten[{#1}]]]] === Graph & , 1]; StylePrint[{"Got ", goodSet}]; ]; ]; 
+            If[n >= 24, Throw["Some crappy corrupt graphs here.! n>24!!!"]]; priveledgeSomeLegs[graph, goodSet[[1]]]]]]; 
+       If[Head[graphHashCode[cG]] =!= Graph, Print[{"Had to box oldschool!  minStripPriveledge insufficient for crazy graph.", 
+           stripPriveledge[graph]}]; priveledgeSomeLegs[graph, goodSet[[1]]], cG]]]
+
+
+
 Clear[corruptGraph];
 corruptGraph[graph_] :=
     corruptGraph[graph] = If[ Head[graphHashCode[graph]] ~SameQ~ Graph,
