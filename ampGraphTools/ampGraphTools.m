@@ -1,6 +1,5 @@
 (* ::Package:: *)
 
-
 (* Mathematica Package *)
 
 
@@ -289,7 +288,7 @@ twoExternalVertices::usage="TBD";
 twoFersEqual::usage="TBD";
 twoFersMap::usage="TBD";
 uHat::usage="TBD";
-ulp::usage="TBD";
+dot::usage="TBD";
 unionSortExprs::usage="TBD";
 uniqDots::usage="TBD";
 uniqLegs::usage="TBD";
@@ -360,7 +359,7 @@ extractType[data_,head_]:=data /. head[a___]:>Sow[head[a]]//Reap//Last//Flatten;
 extractType[data_, head_] := Union[Cases[data, head[___], Infinity]]
 
 
-getUniqDotsFromExpr[expr_]:=(expr~extractType~ulp)
+getUniqDotsFromExpr[expr_]:=(expr~extractType~dot)
 
 
 functionKeys = DownValues[#][[All, 1, 1, 1]] &;  
@@ -371,8 +370,8 @@ Say[a_]:=StylePrint[ Grid[{
 Flatten[{DateString[]," -- ", Flatten[{a}] }]}]]
 
 
-polRules[LEGS_]:={ulp[k[ a_],\[Epsilon][ k[a_]]]:>0,
-    ulp[k[ 1],\[Epsilon][k[ LEGS]]]->Total[-ulp[k[ #],\[Epsilon][ k[LEGS]]]&/@Range[2,LEGS-1]]};
+polRules[LEGS_]:={dot[k[ a_],\[Epsilon][ k[a_]]]:>0,
+    dot[k[ 1],\[Epsilon][k[ LEGS]]]->Total[-dot[k[ #],\[Epsilon][ k[LEGS]]]&/@Range[2,LEGS-1]]};
 
 
 scramble[list_] := (* Put list in bucket, remove list from bucket *)
@@ -414,7 +413,7 @@ getExtLegs[graph_]:=(
 	])
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Gauge Feynman Rules *)
 
 
@@ -449,11 +448,11 @@ theRulez[stuff_] :=
      component[\[Eta]][{a_, b_}]*component[\[Eta]][{c_, b_}] :> 
      component[\[Eta]][{a, c}] ,   
     component[a_][b_]*component[\[Eta]][{c_, b_}] :> component[a][c],
-     component[a_][b_]*component[c_][b_] :> ulp[a, c] } /. \[Epsilon][
+     component[a_][b_]*component[c_][b_] :> dot[a, c] } /. \[Epsilon][
     k[ a_]] :> \[Epsilon][ a]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Formatting*)
 
 
@@ -504,7 +503,7 @@ Format[Atree[a__, h__]] :=
           Subscript[k, LEGS]]] /. Subscript[k, aa_] :> aa);
   Format[perm[a__]] := 
    DisplayForm[RowBox[{"(", a /. k[b_] :> b, ")"} // Flatten]];
-  Format[ulp[a_, b_]] := 
+  Format[dot[a_, b_]] := 
    DisplayForm[RowBox[{"(", a, "\[CenterDot]", b, ")"}]];
   Format[\[Epsilon][k[a_]]] := 
    DisplayForm[RowBox[{SubscriptBox["\[CurlyEpsilon]", a]}]];
@@ -534,7 +533,7 @@ fancyFormatOff := (FFON = False;
   Format[AtreeF[a__]]=.;
   Format[numerator[a_, b_]] =.;
   Format[perm[a__]] =.;
-  Format[ulp[a_, b_]] =.;
+  Format[dot[a_, b_]] =.;
   Format[\[Epsilon][k[a_]]] =.;
   Format[aa[i_, j_]] =.;
   Format[\[Tau][a_, b_]] = .;
@@ -546,7 +545,7 @@ fancyFormatOff;
 fancyFormatQ := FFON
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Properties of dot products etc*)
 
 
@@ -562,16 +561,18 @@ Lsq[a_] :=
     ]
 
 
-SetAttributes[ulp, Orderless]
+ulp[x___]:=dot[x];
 
-ulp[-(a_), b_] :=
-    -ulp[a, b]
+SetAttributes[dot, Orderless]
 
-ulp[a_, (b_) + (c_)] :=
-    ulp[a, b] + ulp[a, c]
+dot[-(a_), b_] :=
+    -dot[a, b]
 
-ulp[a_?NumberQ b_, c_] :=
-    a ulp[b,c]
+dot[a_, (b_) + (c_)] :=
+    dot[a, b] + dot[a, c]
+
+dot[a_?NumberQ b_, c_] :=
+    a dot[b,c]
 
 uLsqCleaningRule :=
     uLsq[a__]:>uLsq[Flatten[a/.Plus:>List]]
@@ -1456,21 +1457,21 @@ getGoodUniqLegs[treeList_] :=
         ( Module[ {me,legs,loops,doo,eqns2,Subscript,
         myTrees = treeList,
         eqns,
-        free = Flatten[{List@@Expand[req/.uLsq[{a_,b_}]:>ulp[a,b]/.-1:>1]}],ks},
+        free = Flatten[{List@@Expand[req/.uLsq[{a_,b_}]:>dot[a,b]/.-1:>1]}],ks},
               Subscript[a_,b_] :=
                   a[b];
               legs = Union[Flatten[myTrees/.Atree[a__]:>a /.-a_:>a]];
               loops = Select[legs,#[[1]] ~SameQ~ l&];
               ks = Select[legs,#[[1]] ~SameQ~ k&];
-              doo = Union[Flatten[Outer[ulp[#1,#2]&,legs,legs]/.ulp[a_,a_]:>{}]];
+              doo = Union[Flatten[Outer[dot[#1,#2]&,legs,legs]/.dot[a_,a_]:>{}]];
               doo = Join[Complement[doo,free],
-              Complement[{ulp[Subscript[k, 2],Subscript[k, 3]],
-              ulp[Subscript[k, 2],Subscript[k, 4]],
-              ulp[Subscript[k, 3],Subscript[k, 4]],
-              ulp[Subscript[k, 1],Subscript[k, 2]]},free]];
+              Complement[{dot[Subscript[k, 2],Subscript[k, 3]],
+              dot[Subscript[k, 2],Subscript[k, 4]],
+              dot[Subscript[k, 3],Subscript[k, 4]],
+              dot[Subscript[k, 1],Subscript[k, 2]]},free]];
               eqns = myTrees/.Atree[a__]:>(Plus@@a);
               eqns2 = Flatten[Map[(me = #;
-                                   Map[(ulp[#,me]==0)&,eqns])&,legs]]/.ulp[a_,a_]:>0;
+                                   Map[(dot[#,me]==0)&,eqns])&,legs]]/.dot[a_,a_]:>0;
               Reduce[eqns2,doo,Backsubstitution->True]
           ]);
 
@@ -1662,14 +1663,14 @@ getOffShellDotsBetter[graph_] :=
        legs = Join[int, ext]; ToRules[
          (Reduce[ (daRInp = Flatten[#1]), 
                   (daList = 
-                  Sort[Union[Flatten[Outer[ulp[#1, #2] & , 
+                  Sort[Union[Flatten[Outer[dot[#1, #2] & , 
                            Join[ext[[{-1}]], int], Join[ext, int]]]], 
                      OrderedQ[(Abs[#1] /. {k[a_] :> a, l[b_] :> 
-                                    2^b, ulp[a_, b_] :> a*b} & ) /@ 
+                                    2^b, dot[a_, b_] :> a*b} & ) /@ 
                            {#1, #2}] & ] // Reverse ), 
-                   Backsubstitution -> True] & )[Join[(ulp[#1, #1] == 0 & ) /@ ext, 
+                   Backsubstitution -> True] & )[Join[(dot[#1, #1] == 0 & ) /@ ext, 
              Append[trees, Atree[ext]] /. Atree[a__] :> 
-                 (ulp[#1, Plus @@ a] == 0 & ) /@ legs]]]]
+                 (dot[#1, Plus @@ a] == 0 & ) /@ legs]]]]
 
 
 polGaugeAnsatzMaxPowers[gr_,param_,powerCycleDrop_] :=
@@ -1683,19 +1684,19 @@ StylePrint[lMaps];
 LOOPS=Length[getMyCycles[gr]];
 uniqLegs=Select[getMyUniqLegs[gr],(#/.Append[lMaps,a_:>2])>=1&];
 StylePrint[uniqLegs];
-uniqDots=Outer[ulp[#1,#2]&, uniqLegs,uniqLegs]/.getIndepRules[{Atree[k/@Range[LEGS]]}]/.ulp[k[a_],k[a_]]:>{}/.ulp[a_,b_]:>Sow[ulp[a,b]]//Reap//Last//Flatten//Union;
+uniqDots=Outer[dot[#1,#2]&, uniqLegs,uniqLegs]/.getIndepRules[{Atree[k/@Range[LEGS]]}]/.dot[k[a_],k[a_]]:>{}/.dot[a_,b_]:>Sow[dot[a,b]]//Reap//Last//Flatten//Union;
 uniqDots=
-Select[uniqDots,(me=#; And@@((0 ~SameQ~ (D[me/.ulp[a_,b_]:> a*b,{#[[1]],1+#[[2]]}]))&/@lMaps))&];
+Select[uniqDots,(me=#; And@@((0 ~SameQ~ (D[me/.dot[a_,b_]:> a*b,{#[[1]],1+#[[2]]}]))&/@lMaps))&];
 StylePrint[uniqDots];
 uniqPol=Map[\[Epsilon][#]&,eLegs];
-singlePol=Outer[ulp[#1,#2]&,uniqLegs,uniqPol]/.ulp[First[uniqLegs],Last[uniqPol]]:>{}/.
-ulp[k[a_],\[Epsilon][k[a_]]]:>{}//Flatten//Union;
+singlePol=Outer[dot[#1,#2]&,uniqLegs,uniqPol]/.dot[First[uniqLegs],Last[uniqPol]]:>{}/.
+dot[k[a_],\[Epsilon][k[a_]]]:>{}//Flatten//Union;
 doublePol=
-Outer[ulp[#1,#2]&,uniqPol,uniqPol]/.ulp[a_,a_]:>{}//Flatten//Union;
+Outer[dot[#1,#2]&,uniqPol,uniqPol]/.dot[a_,a_]:>{}//Flatten//Union;
 maxPowerCount=2*(LEGS+LOOPS-1)-2;
 curGuys=Flatten[{singlePol,doublePol}];
 cG=curGuys=If[Length[lMaps]>0,Select[curGuys,(me=#; And@@((0 ~SameQ~  
-  (D[me/.ulp[a_,b_]:> a*b,{#[[1]],1+#[[2]]}]))&/@lMaps))&],curGuys];
+  (D[me/.dot[a_,b_]:> a*b,{#[[1]],1+#[[2]]}]))&/@lMaps))&],curGuys];
 While[maxPowerCount>0,
 maxPowerCount-=2;
 curGuys=Table[\[Epsilon]Used=expr/.\[Epsilon][a_]:>Sow[\[Epsilon][a]]//Reap//Last//Flatten//Union;
@@ -1707,8 +1708,8 @@ If[(Length[uniqPol]-Length[\[Epsilon]Used])-1<=maxPowerCount,
 (* i.e. I can afford one mistake :-) *)
 {singlePol,doublePol},
 doublePol]];
-nextBatch=(nextBatch/.(ulp[_,#]:>{}&/@\[Epsilon]Used))//Flatten//Union;
-nextBatch=Select[nextBatch, ((#/.ulp[a_,b_]:>a/.lUR/.a_[b_]:>10)>0&&(#/.ulp[a_,b_]:>b/.lUR/.a_[b_]:>10)>0)&];
+nextBatch=(nextBatch/.(dot[_,#]:>{}&/@\[Epsilon]Used))//Flatten//Union;
+nextBatch=Select[nextBatch, ((#/.dot[a_,b_]:>a/.lUR/.a_[b_]:>10)>0&&(#/.dot[a_,b_]:>b/.lUR/.a_[b_]:>10)>0)&];
 
 If[nextBatch ~SameQ~ {},{},
 Map[expr*#&,nextBatch]],
@@ -1726,11 +1727,11 @@ maxPowerCount,curGuys,\[Epsilon]Used,nextBatch},
 	LEGS=Length[eLegs];
 LOOPS=Length[getMyCycles[gr]];
 uniqLegs=getMyUniqLegs[gr];
-uniqDots=Map[#[[2]]/.ulp[a_,b_]:>Sow[ulp[a,b]]&,getOffShellDots[gr]]  //Reap//Last//Flatten//Union;
+uniqDots=Map[#[[2]]/.dot[a_,b_]:>Sow[dot[a,b]]&,getOffShellDots[gr]]  //Reap//Last//Flatten//Union;
 uniqPol=Map[\[Epsilon][#]&,eLegs];
-singlePol=Outer[ulp[#1,#2]&,uniqLegs,uniqPol]/.ulp[First[uniqLegs],Last[uniqPol]]:>{}//Flatten//Union;
+singlePol=Outer[dot[#1,#2]&,uniqLegs,uniqPol]/.dot[First[uniqLegs],Last[uniqPol]]:>{}//Flatten//Union;
 doublePol=
-Outer[ulp[#1,#2]&,uniqPol,uniqPol]/.ulp[a_,a_]:>{}//Flatten//Union;
+Outer[dot[#1,#2]&,uniqPol,uniqPol]/.dot[a_,a_]:>{}//Flatten//Union;
 maxPowerCount=2*(LEGS+LOOPS-1)-2;
 curGuys=Flatten[{singlePol,doublePol}];
 While[maxPowerCount>0,
@@ -1742,7 +1743,7 @@ If[(Length[uniqPol]-Length[\[Epsilon]Used])-1<=maxPowerCount,
 (* i.e. I can afford one mistake :-) *)
 {singlePol,doublePol},
 doublePol]];
-nextBatch=(nextBatch/.(ulp[_,#]:>{}&/@\[Epsilon]Used))//Flatten//Union;If[nextBatch ~SameQ~ {},{},
+nextBatch=(nextBatch/.(dot[_,#]:>{}&/@\[Epsilon]Used))//Flatten//Union;If[nextBatch ~SameQ~ {},{},
 Map[expr*#&,nextBatch]],
 {expr,curGuys}]//Flatten//Union;
 ];
@@ -1782,7 +1783,6 @@ newColorSimplify[expr_] :=
 
 (* ::Subsubsection:: *)
 (*Momenta and spinor code*)
-
 
 
 spa[x__] :=
@@ -1877,7 +1877,7 @@ refreshHLP :=
      hLsq[a__,myMomenta_] :=
          hLsq[a,myMomenta] = Lsq[Plus@@(myMomenta/@a)];)
 evaluateLpRule[myMomenta_] :=
-    {ulp[a_,b_]:> hLP[a,b,myMomenta]}
+    {dot[a_,b_]:> hLP[a,b,myMomenta]}
 evaluateLsqRule[myMomenta_] :=
     {uLsq[a___]:>hLsq[Flatten[{a/.Plus:>List}],myMomenta]}
 evaluateSRule[myMomenta_] :=
@@ -2615,28 +2615,28 @@ uHat[graph_, leg_] :=
         Subscript[a_, b_] :=
             a[b];
         vars = Union[
-          Flatten[Outer[ulp[#1, #2] &, 
+          Flatten[Outer[dot[#1, #2] &, 
             Complement[
              legs, {Subscript[k, 1], Subscript[k, 2], Subscript[k, 3], 
               Subscript[k, 4]}], legs]]];
-        expr = Flatten[{ulp[Subscript[k, 1], Subscript[k, 1]] == 0, 
-           ulp[Subscript[k, 2], Subscript[k, 2]] == 0, 
-           ulp[Subscript[k, 3], Subscript[k, 3]] == 0, 
-           ulp[Subscript[k, 4], Subscript[k, 4]] == 0,
+        expr = Flatten[{dot[Subscript[k, 1], Subscript[k, 1]] == 0, 
+           dot[Subscript[k, 2], Subscript[k, 2]] == 0, 
+           dot[Subscript[k, 3], Subscript[k, 3]] == 0, 
+           dot[Subscript[k, 4], Subscript[k, 4]] == 0,
            trees /. 
             Atree[a__] :> 
-             Map[(0 == ulp[#, Plus @@ a] /. 
-                  ulp[Subscript[k, z_], Subscript[k, z_]] :> 0 /. 
-                 ulp[0, z_] :> 0) &, legs]}];
+             Map[(0 == dot[#, Plus @@ a] /. 
+                  dot[Subscript[k, z_], Subscript[k, z_]] :> 0 /. 
+                 dot[0, z_] :> 0) &, legs]}];
         Rule @@ # & /@ (List @@ Reduce[expr, vars])
     ]  *)
     
 getDotRules[trees_] := Module[{legs = Union[Flatten[trees /. Atree[a__] :> a /. -(a_) :> a]], vars, expr,extLegs, Subscript}, 
-    Subscript[a_, b_] := a[b]; extLegs=Select[legs,Head[#]===k&];vars = Union[Flatten[Outer[ulp[#1, #2] & , Flatten[legs/.k[a_]:>{}], legs]]]; 
-     expr = Flatten[{Map[ulp[#,#]==0&,extLegs], 
-        trees /. Atree[a__] :> (0 == ulp[#1, Plus @@ a] /. 
-        ulp[Subscript[k, z_], Subscript[k, z_]] :> 0 /. 
-             ulp[0, z_] :> 0 & ) /@ legs}]; (Rule @@ #1 & ) /@ List @@ 
+    Subscript[a_, b_] := a[b]; extLegs=Select[legs,Head[#]===k&];vars = Union[Flatten[Outer[dot[#1, #2] & , Flatten[legs/.k[a_]:>{}], legs]]]; 
+     expr = Flatten[{Map[dot[#,#]==0&,extLegs], 
+        trees /. Atree[a__] :> (0 == dot[#1, Plus @@ a] /. 
+        dot[Subscript[k, z_], Subscript[k, z_]] :> 0 /. 
+             dot[0, z_] :> 0 & ) /@ legs}]; (Rule @@ #1 & ) /@ List @@ 
              Reduce[expr, vars]]
 
 getIndepLegs[trees_] :=
@@ -2830,7 +2830,7 @@ toGraph"];
     
 
 
-fromCompressedDressing[dressing_,extLegNum_]:=dressing /.t[a_,b_]:>2ulp@@(k/@{a,b})/.k[a_]:>If[a>extLegNum,l[a],k[a]]
+fromCompressedDressing[dressing_,extLegNum_]:=dressing /.t[a_,b_]:>2dot@@(k/@{a,b})/.k[a_]:>If[a>extLegNum,l[a],k[a]]
 
 
 fromCompressedGraph[graph_]:=Module[{extLegNum=Select[graph,Length[#]===1&]//Length},
@@ -3356,7 +3356,7 @@ getEveryIsomorphismBasisProject[graph_,dressing_] :=
          red[a_,1,b_]:>-k[a]/.red[a_,0,b_]:>l[a];
         indepRules = getIndepRules[consistentGraphToTrees[graph]];
         Table[dressing/.indepRules/.myIsoRule//.graphAlgRules[graph]/.
-         getKRules[graph//consistentGraphToTrees]/.ulp[k[a_],k[a_]]:>0/.
+         getKRules[graph//consistentGraphToTrees]/.dot[k[a_],k[a_]]:>0/.
          getIndepRules[{Atree[getExtLegsFromTrees[consistentGraphToTrees[graph]]]}],
            {myIsoRule,myIsoRules}]
     ]
@@ -3367,7 +3367,7 @@ getEveryIsomorphism[graph_,dressing_] :=
         myIsoRules = findAllCorruptEdgeIso[graph]/.
          red[a_,1,b_]:>-k[a]/.red[a_,0,b_]:>l[a];
         Table[dressing/.myIsoRule//.graphAlgRules[graph]/.
-         getKRules[graph//consistentGraphToTrees]/.ulp[k[a_],k[a_]]:>0/.
+         getKRules[graph//consistentGraphToTrees]/.dot[k[a_],k[a_]]:>0/.
          getIndepRules[{Atree[getExtLegsFromTrees[consistentGraphToTrees[graph]]]}],
            {myIsoRule,myIsoRules}]
     ]
@@ -3386,11 +3386,11 @@ getOffShellDots[graph_] :=
     Module[ {trees = consistentGraphToTrees[graph],ext,int = getIntLegs[graph],legs},
         ext = getExtLegsFromTrees[trees];
         legs = Join[int,ext];
-        Join[Map[ulp[#,#]==0&,ext], Append[trees,Atree[ext]] /.Atree[a__]:>
-           Map[ulp[#,Plus@@a]==0&,legs]]//Reduce[Flatten[#],
-               (daList = Sort[Outer[ulp[#1,#2]&,Join[ext[[{-1}]],int],
+        Join[Map[dot[#,#]==0&,ext], Append[trees,Atree[ext]] /.Atree[a__]:>
+           Map[dot[#,Plus@@a]==0&,legs]]//Reduce[Flatten[#],
+               (daList = Sort[Outer[dot[#1,#2]&,Join[ext[[{-1}]],int],
                   Join[ext,int]]//Flatten//Union,OrderedQ[(Abs[#]/.{k[a_]:>a ,
-        l[b_]:>2^b,ulp[a_,b_]:>a b})&/@{#1,#2}]&]),Backsubstitution->True]&//ToRules
+        l[b_]:>2^b,dot[a_,b_]:>a b})&/@{#1,#2}]&]),Backsubstitution->True]&//ToRules
     ]
 
 
@@ -3483,15 +3483,15 @@ evaluateKltCut[cut_, ymDressing_, ymGraphs_] :=
          right /. 
           someCut[cutt_] :> doAColorOrderedCut[cutt, ymDressing, ymGraphs];
         neededFunctions = 
-         Map[# -> (# /. uLsq[a__] :> ulp[Plus @@ a, Plus @@ a] /. 
-               ulp[a_, a_] :> 0 /. 
+         Map[# -> (# /. uLsq[a__] :> dot[Plus @@ a, Plus @@ a] /. 
+               dot[a_, a_] :> 0 /. 
               getIndepRules[
                cut]) &, {leftVal, rightVal, matrix} /. 
-                ulp[a_, b_] :> Sow[ulp[a, b]] /. 
+                dot[a_, b_] :> Sow[dot[a, b]] /. 
                uLsq[aa_] :> Sow[uLsq[aa]] // Reap // Last // Flatten // 
      Union];
         basisDots = 
-        Map[#[[2]] /. ulp[a_, b_] :> Sow[ulp[a, b]] &, neededFunctions] // 
+        Map[#[[2]] /. dot[a_, b_] :> Sow[dot[a, b]] &, neededFunctions] // 
        Reap // Last // Flatten // Union;
         StylePrint[{"**************** Lets build the package ", 
            DateString[]} // stringList];
@@ -3500,7 +3500,7 @@ evaluateKltCut[cut_, ymDressing_, ymGraphs_] :=
         myFunction["matrix"] = matrix;
         myFunction["neededFunctions"] = neededFunctions;
         myFunction["evaluate"][rules_] :=
-            Block[ {ulp, uLsq, myRules},
+            Block[ {dot, uLsq, myRules},
                 myRules = (#[[1]] -> (#[[2]] //. rules)) & /@ neededFunctions;
                 myRules /. Rule :> Set;
                 leftVal . matrix . rightVal
@@ -3606,18 +3606,18 @@ evaluateKltCutNoLsq[cut_, ymDressing_, ymGraphs_] :=
           someCut[cutt_] :> doAColorOrderedCut[cutt, ymDressing, ymGraphs];
         StylePrint[{"Lets build the package ", 
            DateString[]} // stringList];
-        {leftVal,rightVal,matrix} = Block[ {uLsq,ulp},
+        {leftVal,rightVal,matrix} = Block[ {uLsq,dot},
                                         uLsq[a__] :=
-                                            ulp[Plus@@a,Plus@@a];
+                                            dot[Plus@@a,Plus@@a];
                                         getIndepRules[cut]/.Rule:>Set;
                                         {leftVal,rightVal,matrix}
                                     ];
         neededFunctions = Map[# -> (#  /. 
-              ulp[a_, a_] :> 0 /. getIndepRules[cut]) &, 
-         Reap[{ getIndepRules[cut]} /. ulp[a___] :> Sow[ulp[a]] /. 
+              dot[a_, a_] :> 0 /. getIndepRules[cut]) &, 
+         Reap[{ getIndepRules[cut]} /. dot[a___] :> Sow[dot[a]] /. 
                uLsq[a__] :> Sow[uLsq[a]];] // Last // Flatten // Union];
         basisDots = 
-         Map[#[[2]] /. ulp[a_, b_] :> Sow[ulp[a, b]] &, neededFunctions] // 
+         Map[#[[2]] /. dot[a_, b_] :> Sow[dot[a, b]] &, neededFunctions] // 
        Reap // Last // Flatten // Union;
         StylePrint[{"Start building package ", 
            DateString[]} // stringList];
@@ -3627,9 +3627,9 @@ evaluateKltCutNoLsq[cut_, ymDressing_, ymGraphs_] :=
         myFunction["matrix"] = matrix;
         myFunction["neededFunctions"] = neededFunctions;
         myFunction["evaluate"][rules_] :=
-            Block[ {ulp, uLsq, myRules},
+            Block[ {dot, uLsq, myRules},
                 myRules = (#[[1]] -> (#[[2]] /. rules)) & /@ neededFunctions;
-                ulp[a_,a_] = 0;
+                dot[a_,a_] = 0;
                 myRules /. Rule :> Set;
                 leftVal . matrix . rightVal
             ];
@@ -3664,12 +3664,12 @@ evaluateKltCut[cut_, ymDressing_, ymGraphs_] :=
         StylePrint[{"**************** Lets build the package ", 
            DateString[]} // stringList];
         neededFunctions = 
-         Map[# -> (# /. uLsq[a__] :> ulp[Plus @@ a, Plus @@ a] /. 
-               ulp[a_, a_] :> 0 /. getIndepRules[cut]) &, 
-          Reap[{leftVal, rightVal, matrix, getIndepRules[cut]} /. ulp[a___] :> Sow[ulp[a]] /. 
+         Map[# -> (# /. uLsq[a__] :> dot[Plus @@ a, Plus @@ a] /. 
+               dot[a_, a_] :> 0 /. getIndepRules[cut]) &, 
+          Reap[{leftVal, rightVal, matrix, getIndepRules[cut]} /. dot[a___] :> Sow[dot[a]] /. 
                 uLsq[a__] :> Sow[uLsq[a]];] // Last // Flatten // Union];
         basisDots = 
-         Map[#[[2]] /. ulp[a_, b_] :> Sow[ulp[a, b]] &, neededFunctions] // 
+         Map[#[[2]] /. dot[a_, b_] :> Sow[dot[a, b]] &, neededFunctions] // 
        Reap // Last // Flatten // Union;
         StylePrint[{"**************** Start building package ", 
            DateString[]} // stringList];
@@ -3679,7 +3679,7 @@ evaluateKltCut[cut_, ymDressing_, ymGraphs_] :=
         myFunction["matrix"] = matrix;
         myFunction["neededFunctions"] = neededFunctions;
         myFunction["evaluate"][rules_] :=
-            Block[ {ulp, uLsq, myRules},
+            Block[ {dot, uLsq, myRules},
                 myRules = (#[[1]] -> (#[[2]] /. rules)) & /@ neededFunctions;
                 myRules /. Rule :> Set;
                 leftVal . matrix . rightVal
@@ -3701,7 +3701,7 @@ newKLT[\[Rho]_, \[Tau]_, ki_] :=
             l = Flatten[Position[\[Tau], j]][[1]];
             \[Beta] = \[Tau][[1 ;; l - 1]];
             \[Gamma] = \[Tau][[l + 1 ;; -1]];
-            2 ulp[Plus @@ \[Beta] + ki, j] newKLT[\[Rho][[1 ;; -2]], 
+            2 dot[Plus @@ \[Beta] + ki, j] newKLT[\[Rho][[1 ;; -2]], 
               Join[\[Beta], \[Gamma]], ki]
         ]
     ]
@@ -4688,6 +4688,7 @@ cutSumFormat[cut__] :=
 
 
 (* ::Subsubsection::Closed:: *)
+(**)
 
 
 (*Private Methods & Close*)
