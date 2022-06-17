@@ -4,8 +4,8 @@
 
 
 BeginPackage["ampGraphTools`"]
-$AmpGTVersion = .6;  
-
+$AmpGTVersion = .61;  
+(* .61 Upgraded to get some plotting working again now w. Mathematica 12+ *)
 (* Exported symbols added here with SymbolName::usage *) 
 
 
@@ -1544,27 +1544,22 @@ corruptGraph[graph_] :=
 (*More plot code*)
 
 
-doOrderedPlot[expr_, myExtLegs_, options___] := Module[{},
-  doMomentaPlot[expr, 
-   VertexCoordinateRules -> 
-    MapIndexed[
-     neckl[-{#}] -> 
-       N[{-Cos[(#2[[1]] - 3/2) 2 \[Pi]/Length[myExtLegs]], 
-         Sin[(#2[[1]] - 3/2) 2 \[Pi]/Length[myExtLegs]]}] &, myExtLegs],
-   MultiedgeStyle -> 50, 
-   EdgeRenderingFunction -> (Flatten[{If[
-         Head[#3 /. -a_ :> a]  ~SameQ~  l, {Dashed, Red, Arrowheads[{{.05, .75}}], 
-          Thick, Arrow[#1], 
-          Text[#3, Mean[#1], Background -> Opacity[.6, White]]},
-         If[
-          Head[#3 /. -a_ :> a]  ~SameQ~  
-           highlight, {RGBColor[0.074189364461738, 0.5290608072022583, 
-            0.0075379568169680325], Thick, Arrow[#1], 
-           Text[#3 /. highlight[a_] :> a, Mean[#1], 
-            Background -> Opacity[.6, White]]}, {Blue, Arrowheads[1/18], 
-           Thick, Arrow[#1], 
-           Text[#3, Mean[#1], Background -> Opacity[.6, White]]}]]}] &), 
-   options]]
+doOrderedPlot[expr_, myExtLegs_, options___] := 
+   Module[{labels, edges,styles,gpf, lgpf,labelHash},
+gpf=graphPlotForm[expr];
+edges=First/@gpf /. Rule:>DirectedEdge;
+labels=Last/@gpf;
+styles = Map[If[Head[#]===l,{"DashedLine",Red},Blue]&,labels];
+labelHash=Association[ Thread[Rule[edges,Head/@(labels/.-a_:>a)]]];
+lgpf=MapThread[Style[Labeled[#,#2],#3]&,{edges,labels/.highlight[a_]:>a,styles}]; GraphPlot[lgpf, DirectedEdges->True,Method->{"SpringElectricalEmbedding"},     MultiedgeStyle -> .50 , VertexCoordinateRules -> 
+      MapIndexed[neckl[-{#1}] -> N[{-Cos[(#2[[1]] - 3/2)*2*(Pi/Length[myExtLegs])], 
+           Sin[(#2[[1]] - 3/2)*2*(Pi/Length[myExtLegs])]}] & , myExtLegs] ,  EdgeRenderingFunction -> 
+(Flatten[{If[ labelHash[#3/.DirectedEdge[a_,b_,c_]:>DirectedEdge[a,b]] === l, {Dashed, Red, 
+           Arrowheads[{{0.05, 0.75}}], Thick, Arrow[#1] (*, Text[#3, Mean[#1], 
+            Background -> Opacity[0.6, White]]*) }, If[ labelHash[#3/.DirectedEdge[a_,b_,c_]:>DirectedEdge[a,b]] ===highlight, {RGBColor[0.074189364461738, 0.5290608072022583, 
+             0.0075379568169680325], Thick, Arrow[#1]} ,{Blue, Arrowheads[1/18], 
+            Thick, Arrow[#1] (*,  Text[#3[[-1,1,1]], Mean[#1] ,Background -> Opacity[0.6, 
+               White]]*) }]]}] & ), options]]
 
 doOrderedPlotRand[expr_, myExtLegs_, options___] := 
   Module[{firstRules = 
@@ -1572,7 +1567,7 @@ doOrderedPlotRand[expr_, myExtLegs_, options___] :=
       neckl[-{#}] -> 
         N[{-Cos[(#2[[1]] - 3/2) 2 \[Pi]/Length[myExtLegs]], 
           Sin[(#2[[1]] - 3/2) 2 \[Pi]/Length[myExtLegs]]}] &, myExtLegs], 
-    fisk},
+    fisk,labels, edges,styles,gpf, lgpf,labelHash},
    fisk = graphPlotForm[expr] /. firstRules /. neckl[a___] :> Sow[neckl[a]] //
          Reap // Last // Flatten // Union;
    firstRules = 
@@ -1581,21 +1576,20 @@ doOrderedPlotRand[expr_, myExtLegs_, options___] :=
         N[3/4 Mean[# /. neckl[a__] :> (neckl[{-#}] & /@ a) /. firstRules /. 
             neckl[___] :> RandomReal[{-2, -2}/3, 2]]
          ] &, fisk]];
-   doMomentaPlot[expr, VertexCoordinateRules -> firstRules,
+   gpf=graphPlotForm[expr];
+   edges=First/@gpf /. Rule:>DirectedEdge;
+   labels=Last/@gpf;
+   styles = Map[If[Head[#]===l,{"DashedLine",Red},Blue]&,labels];
+   labelHash=Association[ Thread[Rule[edges,Head/@(labels/.-a_:>a)]]];
+   lgpf=MapThread[Style[Labeled[#,#2],#3]&,{edges,labels/.highlight[a_]:>a,styles}]; 
+   GraphPlot[lgpf, VertexCoordinateRules -> firstRules,
     MultiedgeStyle -> 50, 
-    EdgeRenderingFunction -> (Flatten[{If[
-          Head[#3 /. -a_ :> a]  ~SameQ~  l, {Dashed, Red, Arrowheads[{{.05, .75}}], 
-           Thick, Arrow[#1], 
-           Text[#3, Mean[#1], Background -> Opacity[.6, White]]},
-          If[
-           Head[#3 /. -a_ :> a]  ~SameQ~  
-            highlight, {RGBColor[0.074189364461738, 0.5290608072022583, 
-             0.0075379568169680325], Thick, Arrow[#1], 
-            
-            Text[#3 /. highlight[a_] :> a, Mean[#1], 
-             Background -> Opacity[.6, White]]}, {Blue, Arrowheads[1/18], 
-            Thick, Arrow[#1], 
-            Text[#3, Mean[#1], Background -> Opacity[.6, White]]}]]}] &), 
+    EdgeRenderingFunction -> (Flatten[{If[ labelHash[#3/.DirectedEdge[a_,b_,c_]:>DirectedEdge[a,b]] === l, {Dashed, Red, 
+           Arrowheads[{{0.05, 0.75}}], Thick, Arrow[#1] (*, Text[#3, Mean[#1], 
+            Background -> Opacity[0.6, White]]*) }, If[ labelHash[#3/.DirectedEdge[a_,b_,c_]:>DirectedEdge[a,b]] ===highlight, {RGBColor[0.074189364461738, 0.5290608072022583, 
+             0.0075379568169680325], Thick, Arrow[#1]} ,{Blue, Arrowheads[1/18], 
+            Thick, Arrow[#1] (*,  Text[#3[[-1,1,1]], Mean[#1] ,Background -> Opacity[0.6, 
+               White]]*) }]]}] & ), 
     options]];
 
 doOrderedPlot[expr_] := 
@@ -1619,8 +1613,9 @@ cutDisplayRule[expr_] :=
 cutDisplayRule[expr_] := 
  expr /. in[a_] :> "" /. 
   Graphics[a___] :> 
-   Graphics @@ (List[a] /. {l[b_] :> Style[l[b], {Blue, Bold, Large}],
-       k[b_] :> Style[b, {Purple, Bold, Large}]})
+   Graphics @@ (List[a] /. {-l[b_] :> Style[-l[b], {Blue, Bold, Large}], 
+        l[b_] :> Style[l[b], {Blue, Bold, Large}], 
+        k[b_] :> Style[b, {Purple, Bold, Large}]})
 
 
 
@@ -4613,29 +4608,18 @@ opTillClosure[initial_, op_] :=
   {uHatList, collection}]
 
 opTillClosureOnCollection[collection_, {op1_, op2_}] := 
- Module[{oldMaxId, myCurrentID, uHatList},
-  myCurrentID = 1;
-  uHatList = {};
-  uHatList = FixedPoint[  (oldMaxId = collection["maxItem"];
-      uHatList = Flatten[{#,
-           
-           Table[DYNSTAT = {leg, 
-              myRow = (myCurrentID <-> 
-                 collectionAdd[collection, 
-                  op1[collection[myCurrentID] // stripPriveledge, leg] // 
-                   priveledgeLegs, graphHashCode])};
-            {myRow,
-             
-             myCurrentID <-> 
-              collectionAdd[collection, 
-               op2[collection[myCurrentID] // stripPriveledge, leg] // 
-                priveledgeLegs, graphHashCode]}, {leg, 
-             getIntLegs[collection[myCurrentID] // stripPriveledge]}]}] /. 
-         UndirectedEdge[a_, b_] :> UndirectedEdge @@ Sort[{a, b}] // Union;
-      If[oldMaxId < collection["maxItem"] || myCurrentID < oldMaxId,
-       myCurrentID++];
-      uHatList) &, uHatList];
-  {uHatList, collection}]
+   Module[{oldMaxId, myCurrentID, graphList}, myCurrentID = 1; graphList = {}; 
+     graphList = FixedPoint[(oldMaxId = collection["maxItem"]; 
+         graphList = Union[Flatten[{#1, Table[DYNSTAT = {leg, myRow = myCurrentID <-> 
+                    collectionAdd[collection, priveledgeLegs[op1[stripPriveledge[
+                        collection[myCurrentID]], leg]], graphHashCode]}; 
+                {myRow, myCurrentID <-> collectionAdd[collection, priveledgeLegs[
+                    op2[stripPriveledge[collection[myCurrentID]], leg]], 
+                   graphHashCode]}, {leg, getIntLegs[stripPriveledge[collection[
+                   myCurrentID]]]}]}] /. UndirectedEdge[a_, b_] :> UndirectedEdge @@ 
+              Sort[{a, b}]]; If[oldMaxId < collection["maxItem"] || 
+           myCurrentID < oldMaxId, myCurrentID++]; graphList) & , graphList]; 
+     {graphList/.TwoWayRule[a_,b_]:>TwoWayRule@@Sort[{a,b}]//Union, collection}]
 
 getVertices[vertexFormGraph[necklaceList__]] := necklaceList
 
