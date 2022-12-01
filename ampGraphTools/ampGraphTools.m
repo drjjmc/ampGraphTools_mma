@@ -356,7 +356,7 @@ multiLoopGraph[mm_,ll_] :=
 (*
 extractType[data_,head_]:=data /. head[a___]:>Sow[head[a]]//Reap//Last//Flatten;
 *)
-extractType[data_, head_] := Union[Cases[data, head[___], Infinity]]
+extractType[data_, head_] := Union[Cases[data, head[___], {0,Infinity}]]
 
 
 getUniqDotsFromExpr[expr_]:=(expr~extractType~dot)
