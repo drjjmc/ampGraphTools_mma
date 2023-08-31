@@ -4,8 +4,8 @@
 
 
 BeginPackage["ampGraphTools`"]
-$AmpGTVersion = .61;  
-(* .61 Upgraded to get some plotting working again now w. Mathematica 12+ *)
+$AmpGTVersion = .63;  
+(* .63 Fixed some somePriveledgedLegs boundaries and Jacobi op clarity *)
 (* Exported symbols added here with SymbolName::usage *) 
 
 
