@@ -4060,18 +4060,20 @@ web
 ]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Delayed Graph Container Code*)
 
 
 priveledgeSomeLegs[graph_,legs_] :=
     Module[ {allKs, allLs, newLs, newKs, 
-    tree = consistentGraphToTrees[graph],numLz,StylePrint},
+    tree = consistentGraphToTrees[graph],numLz,StylePrint,dz},
         allLs = legs;
-        Do[numLz[num] = Flatten[ Position[allLs,l[num]]][[-1]],{num,allLs/.l[a_]:>a}];
+        Do[numLz[num] = If[Length[dz=Flatten[Position[allLs,l[num]]]]>0,Last[dz],0],{num,allLs/.l[a_]:>a}];
+        
         StylePrint[{#,numLz[#]}&/@(allLs/.l[a_]:>a)];
         StylePrint[{allKs, allLs}];
-        newLs = Table[Table[Atree[{red[num, 0, i], -red[num, 0, i + 1]}], {i, 1,numLz[num]}] /. 
+        newLs = Table[ Table[
+         Atree[{red[num, 0, i], -red[num, 0, i + 1]}], {i, 1,numLz[num]}] /. 
            red[num, 0, numLz[num] + 1] -> l[num], {num, allLs /. l[a_] :> a}];
         StylePrint[allLs];
         toGraph[Flatten[Join[newLs, 
