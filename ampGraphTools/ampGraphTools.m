@@ -2539,11 +2539,11 @@ getTheCutCompare[cut_,cutGraphSoln_] :=
 
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Jacobi graph op code...*)
 
 
-tHat[graph_, leg_] := 
+(* tHat[graph_, leg_] := 
  Module[{trees = consistentGraphToTrees[graph], a, b, rest, neg, 
         pos, counter, as, at, au, k1, k2, k3, k4, ls, myEqnFs, 
    myNormCrap, zat, i, StylePrint,
@@ -2594,9 +2594,38 @@ uHat[graph_, leg_] :=
         StylePrint[myTree];
         rules = mapToAbsGenericTrees[myTree];
         StylePrint[{"rules", "InputForm"[rules]}];
-        toGraph[Join[rest, {Atree[{k1, k3, au}], Atree[{-au, k2, k4}]}] /. au :> leg]
+        toGraph[Join[rest, {Atree[{k3, k1, au}], Atree[{-au, k4, k2}]}] /. au :> leg]
     ]
+*)
 
+jacobiTripleGraph[graph_, leg_] := 
+ Module[{ a, b, rest, neg, 
+        pos, counter, as, at, au, k1, k2, k3, k4, ls, myEqnFs, 
+   myNormCrap, zat, i, StylePrint,
+        allDaFudges, myTree, rules, fancyRules, Print, allFunction}, 
+      StylePrint[{"graph,leg", graph, leg}]; 
+       {neg, pos} =graph[[Sequence@@#[[1;;2]]]]&/@Sort[
+Position[graph,leg],
+OrderedQ[Length/@{#2,#1}]&]; 
+       rest = Complement[graph[[1]], {neg,pos}]; 
+ While[pos[[1]][[-1]]  ~UnsameQ~  leg, 
+         pos = neckl[rotateList[pos[[1]], 2]]]; counter = 0; 
+  While[neg[[1]][[1]]  ~UnsameQ~  -leg, 
+         neg = neckl[rotateList[neg[[1]], 2]]]; {k1, k2, a} = 
+   pos[[1]]; 
+       {a, k3, k4} = neg[[1]]; (* return shat, that, uhat *)
+      { graph,vertexFormGraph[
+   Join[rest, {neckl[{k4, k1, leg}], neckl[{-leg, k2, k3}]}] ],
+vertexFormGraph[
+   Join[rest, {neckl[{k3, k1, leg}], neckl[{-leg, k4, k2}]}] ]}]
+   
+tHat[graph_,leg_]:=jacobiTripleGraph[graph,leg][[2]]
+uHat[graph_,leg_]:=jacobiTripleGraph[graph,leg][[2]]
+   
+
+
+(* ::Text:: *)
+(**)
 
 
 (* ::Subsubsection:: *)
