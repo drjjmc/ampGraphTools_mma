@@ -308,7 +308,7 @@ therein. - dr.jjmc@gmail.com."];
 (* Implementation of the package *)
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Some raw graphs *)
 
 
@@ -385,7 +385,7 @@ scramble[list_] := (* Put list in bucket, remove list from bucket *)
     ]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Access graph meta data *)
 
 
@@ -1746,7 +1746,7 @@ MapIndexed[a[param,#2[[1]]]*#&,curGuys]//Total
 ]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Color rep code*)
 
 
@@ -2598,29 +2598,23 @@ uHat[graph_, leg_] :=
     ]
 *)
 
-jacobiTripleGraph[graph_, leg_] := 
- Module[{ a, b, rest, neg, 
-        pos, counter, as, at, au, k1, k2, k3, k4, ls, myEqnFs, 
-   myNormCrap, zat, i, StylePrint,
-        allDaFudges, myTree, rules, fancyRules, Print, allFunction}, 
-      StylePrint[{"graph,leg", graph, leg}]; 
-       {neg, pos} =graph[[Sequence@@#[[1;;2]]]]&/@Sort[
-Position[graph,leg],
-OrderedQ[Length/@{#2,#1}]&]; 
-       rest = Complement[graph[[1]], {neg,pos}]; 
- While[pos[[1]][[-1]]  ~UnsameQ~  leg, 
-         pos = neckl[rotateList[pos[[1]], 2]]]; counter = 0; 
-  While[neg[[1]][[1]]  ~UnsameQ~  -leg, 
-         neg = neckl[rotateList[neg[[1]], 2]]]; {k1, k2, a} = 
-   pos[[1]]; 
-       {a, k3, k4} = neg[[1]]; (* return shat, that, uhat *)
-      { graph,vertexFormGraph[
-   Join[rest, {neckl[{k4, k1, leg}], neckl[{-leg, k2, k3}]}] ],
-vertexFormGraph[
-   Join[rest, {neckl[{k3, k1, leg}], neckl[{-leg, k4, k2}]}] ]}]
+jacobiTripleGraph[graph_, leg_] := Module[{a, b, rest, neg, pos, counter, as, at, au, k1, k2, k3, k4, ls, myEqnFs, myNormCrap, zat, i, StylePrint, allDaFudges, myTree, rules, 
+     fancyRules, Print, allFunction,legS=in[Unique[]],legT=in[Unique[]], legU=in[Unique[]]}, 
+     StylePrint[{"graph,leg", graph, leg}]; 
+     {neg, pos} = (graph[[Sequence @@ #1[[1 ;; 2]]]] & ) /@ 
+       Sort[Position[graph, leg], OrderedQ[Length /@ {#2, #1}] & ]; 
+       rest = Complement[graph[[1]], {neg, pos}]; 
+       While[pos[[1]][[-1]] =!= leg, pos = neckl[rotateList[pos[[1]], 2]]]; 
+     counter = 0; 
+     While[neg[[1]][[1]] =!= -leg, neg = neckl[rotateList[neg[[1]], 2]]]; 
+     {k1, k2, a} = pos[[1]]; {a, k3, k4} = neg[[1]]; 
+     {graph/.leg:>legS, 
+     vertexFormGraph[Join[rest, {neckl[{k4, k1, legT}], neckl[{-legT, k2, k3}]}]], 
+     vertexFormGraph[Join[rest, {neckl[{k3, k1, legU}], neckl[{-legU, k4, k2}]}]]}
+     ];
    
 tHat[graph_,leg_]:=jacobiTripleGraph[graph,leg][[2]]
-uHat[graph_,leg_]:=jacobiTripleGraph[graph,leg][[2]]
+uHat[graph_,leg_]:=jacobiTripleGraph[graph,leg][[3]]
    
 
 
@@ -4702,7 +4696,7 @@ cutSumFormat[cut__] :=
        myRule]]], Large]]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (**)
 
 
@@ -4713,5 +4707,3 @@ Begin["`Private`"]
 End[]
 
 EndPackage[]
-
-
