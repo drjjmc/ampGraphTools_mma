@@ -4,7 +4,7 @@
 
 
 BeginPackage["ampGraphTools`"]
-$AmpGTVersion = .64;  
+$AmpGTVersion = .63;  
 (* .63 Fixed some somePriveledgedLegs boundaries and Jacobi op clarity *)
 (* Exported symbols added here with SymbolName::usage *) 
 
@@ -1178,9 +1178,8 @@ resetMathematicaGraph :=
          ]);
 resetMathematicaGraph  
 
-resetGraphHashCode:=(Clear[graphHashCode];graphHashCode[graph_] :=
-    graphHashCode[graph] = CanonicalGraph[mathematicaGraph[graph]]);
-resetGraphHashCode
+graphHashCode[graph_] :=
+    graphHashCode[graph] = CanonicalGraph[mathematicaGraph[graph]]
 
 isIsomorphic[graphA_, graphB_] :=
     IsomorphicGraphQ[mathematicaGraph[graphA], mathematicaGraph[graphB]]
@@ -1218,7 +1217,7 @@ isomorphicEdgeRulesAllBad[graphA_,graphB_] :=
 
 
 isomorphicEdgeRulesAll[graphA_,graphB_] :=
-    Module[ {StylePrint,zibbles,
+    Module[ {StylePrint,
     gPFA = graphPlotForm[graphA],
     gPFB = graphPlotForm[graphB],(* Assumes first rule is identity fully spelled out. *) 
     rules = isomorphicVertexRulesAll[graphA,graphB]},
@@ -1240,7 +1239,7 @@ rotateList[l_, ip_] :=
 
 
 isomorphicEdgeRulesAll[graphA_,graphB_] :=
-    Module[ {StylePrint,zibbles,
+    Module[ {StylePrint,
     gPFA = graphPlotForm[graphA],
     gPFB = graphPlotForm[graphB],(* Assumes first rule is identity fully spelled out. *) 
     rules = isomorphicVertexRulesAll[graphA,graphB]},
@@ -1482,13 +1481,13 @@ consistentGraphToTrees[vertexFormGraph[necklaces__]] :=
 
 corruptGraphNoMemo[graph_] := If[Head[graphHashCode[graph]] === Graph, graph, 
      Module[{goodSet, cG, StylePrint}, cG = minStripPriveledge[If[Head[graphHashCode[graph]] === Graph, graph, 
-          Module[{intLegs = getIntLegs[graph], n = 0}, goodSet = {}; While[goodSet === {} && n < 244, 
+          Module[{intLegs = getIntLegs[graph], n = 0}, goodSet = {}; While[goodSet === {} && n < 24, 
              n++; StylePrint[StringJoin["Trying ", ToString[n]]]; goodSet = Select[Subsets[intLegs, {n}], 
                 Head[graphHashCode[priveledgeSomeLegs[graph, Flatten[{#1}]]]] === Graph & , 1]; StylePrint[{"Got ", goodSet}]; ]; 
-            If[n >= 244, n = 0; intLegs = Sort[getIntLegs[graph]]; goodSet = {}; While[goodSet === {} && n < 244, n++; 
+            If[n >= 24, n = 0; intLegs = Sort[getIntLegs[graph]]; goodSet = {}; While[goodSet === {} && n < 24, n++; 
                 StylePrint[StringJoin["Trying ", ToString[n]]]; goodSet = Select[Subsets[intLegs, {n}], 
                   Head[graphHashCode[priveledgeSomeLegs[graph, Flatten[{#1}]]]] === Graph & , 1]; StylePrint[{"Got ", goodSet}]; ]; ]; 
-            If[n >= 244, Throw["Some crappy corrupt graphs here.! n>24!!!"]]; priveledgeSomeLegs[graph, goodSet[[1]]]]]]; 
+            If[n >= 24, Throw["Some crappy corrupt graphs here.! n>24!!!"]]; priveledgeSomeLegs[graph, goodSet[[1]]]]]]; 
        If[Head[graphHashCode[cG]] =!= Graph, Print[{"Had to box oldschool!  minStripPriveledge insufficient for crazy graph.", 
            stripPriveledge[graph]}]; priveledgeSomeLegs[graph, goodSet[[1]]], cG]]]
 
@@ -1503,7 +1502,7 @@ corruptGraph[graph_] :=
                                                               graph,
                                                               Module[ {intLegs = getIntLegs[graph],n = 0},
                                                                   goodSet = {};
-                                                                  While[goodSet ~SameQ~ {}&&n<244,
+                                                                  While[goodSet ~SameQ~ {}&&n<24,
                                                                      n++;
                                                                      StylePrint["Trying "<>ToString[n]];
                                                                      goodSet = Select[Subsets[intLegs,{n}],
@@ -1511,11 +1510,11 @@ corruptGraph[graph_] :=
                                                                         Flatten[{#}]]]] ~SameQ~ Graph&,1];
                                                                      StylePrint[{"Got ", goodSet}];  
                                                                    ];
-                                                                  If[ n>=244,
+                                                                  If[ n>=24,
                                                                       n = 0;
                                                                       intLegs = Sort[getIntLegs[graph]];
                                                                       goodSet = {};
-                                                                      While[goodSet ~SameQ~ {}&&n<244,
+                                                                      While[goodSet ~SameQ~ {}&&n<24,
                                                                        n++;
                                                                        StylePrint["Trying "<>ToString[n]];
                                                                        goodSet = Select[Subsets[intLegs,{n}],
@@ -1524,8 +1523,8 @@ corruptGraph[graph_] :=
                                                                        StylePrint[{"Got ", goodSet}];  
                                                                       ];
                                                                   ];
-                                                                  If[ n>=244,
-                                                                      Throw["Some crappy corrupt graphs here.! n>244!!!"]
+                                                                  If[ n>=24,
+                                                                      Throw["Some crappy corrupt graphs here.! n>24!!!"]
                                                                   ];
                                                                   priveledgeSomeLegs[graph,goodSet[[1]]]
                                                               ]
@@ -2116,7 +2115,7 @@ buildAllMomenta[mtrees_,n__] :=
 
 
 mergeLegsTreeLevel[trees_, a_] :=
-    Module[ {rules, bt = Select[trees, Count[#, a /. -b_ :> b, \[Infinity]] > 0 &], gt = a /. -b_ :> b},
+    Module[ {bt = Select[trees, Count[#, a /. -b_ :> b, \[Infinity]] > 0 &], gt = a /. -b_ :> b},
         If[ Length[bt]  ~UnsameQ~  2,
             Throw[{"Bad collapse ", trees, a, bt}]
         ];
